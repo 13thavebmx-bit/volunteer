@@ -177,6 +177,9 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
       <label for="family">Family name</label>
       <select id="family"><option value="">Select your family…</option></select>
 
+      <label for="vol">Volunteer name</label>
+      <input type="text" id="vol" placeholder="Who's doing the shift(s)?" autocomplete="off">
+
       <label for="event">Event</label>
       <select id="event"><option value="">Select an event…</option></select>
 
@@ -189,7 +192,7 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
         </div>
       </div>
 
-      <label>Pick a spot</label>
+      <label>Pick your spots</label>
       <div id="roleList"><p class="lead" style="margin:0">Select an event first.</p></div>
 
       <div class="notice">
@@ -221,14 +224,14 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
    This is the only line you ever change in this file.
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
-const APP_VERSION = '2026.06.19-7';
+const APP_VERSION = '2026.06.19-8';
 
 /* ---- State ---- */
 let SETTINGS = {bondCredits:10, seasonLabel:'', seasonWindow:'', bondNote:''};
 let FAMILIES = [], EVENTS = [];
 let SESSION = '';   // chosen practice session
 let CUR_EVENT = null;
-let CUR_ROLE = null; // index of the selected spot within CUR_EVENT.roles
+let SEL = new Set(); // indices of the selected spots within CUR_EVENT.roles
 
 /* ---- API helpers (same convention as the Race Manager) ---- */
 async function apiGet(action, params={}){
@@ -330,7 +333,7 @@ function showProgress(fid){
 function onEventChange(){
   const id=$('event').value;
   CUR_EVENT = EVENTS.find(e=>String(e.eventId)===String(id)) || null;
-  CUR_ROLE = null;
+  SEL.clear();
   const isPractice = CUR_EVENT && /practice/i.test(CUR_EVENT.type||CUR_EVENT.name||'');
   $('sessionWrap').style.display = isPractice ? 'block' : 'none';
   if(!isPractice){ SESSION=''; [...document.querySelectorAll('#seg button')].forEach(b=>b.classList.remove('on')); }
@@ -357,7 +360,7 @@ function renderRoleList(){
     if(!capped){ leftLabel='Open'; leftClass='open'; }
     else if(full){ leftLabel='Full'; leftClass='none'; }
     else { leftLabel=`${left} of ${r.spots} left`; leftClass = left<=1?'tight':'open'; }
-    return `<div class="spot ${full?'full':''} ${CUR_ROLE===i?'sel':''}" data-i="${i}" ${full?'':'role="button" tabindex="0"'}>
+    return `<div class="spot ${full?'full':''} ${SEL.has(i)?'sel':''}" data-i="${i}" ${full?'':'role="button" tabindex="0"'}>
       <div class="spot-main">
         <div class="spot-role">${esc(r.role)}</div>
         ${r.slot?`<div class="spot-when">${esc(r.slot)}</div>`:''}
@@ -369,17 +372,19 @@ function renderRoleList(){
     </div>`;
   }).join('');
   wrap.querySelectorAll('.spot:not(.full)').forEach(el=>{
-    el.addEventListener('click',()=>{ CUR_ROLE=+el.dataset.i; renderRoleList(); refreshSubmit(); });
+    el.addEventListener('click',()=>{ const i=+el.dataset.i; SEL.has(i)?SEL.delete(i):SEL.add(i); renderRoleList(); refreshSubmit(); });
   });
 }
 
 function refreshSubmit(){
   const isPractice = CUR_EVENT && /practice/i.test(CUR_EVENT.type||'');
-  const ok = $('family').value && CUR_EVENT && CUR_ROLE!==null && (!isPractice || SESSION);
+  const hasName = $('vol').value.trim().length>0;
+  const ok = $('family').value && CUR_EVENT && SEL.size>0 && hasName && (!isPractice || SESSION);
   $('submit').disabled = !ok;
   if(ok){
-    const c=spotCredits(CUR_EVENT.roles[CUR_ROLE]);
-    $('submitLabel').textContent = `Sign up — ${c} ${c===1?'credit':'credits'} (pending)`;
+    let c=0; SEL.forEach(i=>{ c+=spotCredits(CUR_EVENT.roles[i]); });
+    const n=SEL.size;
+    $('submitLabel').textContent = `Sign up for ${n} ${n===1?'spot':'spots'} — ${c} ${c===1?'credit':'credits'} (pending)`;
   } else {
     $('submitLabel').textContent = 'Sign up';
   }
@@ -387,20 +392,28 @@ function refreshSubmit(){
 
 async function submitShift(){
   const fid=$('family').value;
-  const r=CUR_EVENT.roles[CUR_ROLE];
-  const credits=spotCredits(r);
+  const vol=$('vol').value.trim();
+  if(!vol){ toast('Enter the volunteer’s name','err'); return; }
+  const spots=[...SEL].map(i=>{ const r=CUR_EVENT.roles[i]; return {role:r.role, slot:r.slot||'', credits:spotCredits(r)}; });
+  if(!spots.length){ toast('Pick at least one spot','err'); return; }
   $('submit').disabled=true;
   try{
-    const res = await apiPost('logVolunteer', {entry:{
+    const res = await apiPost('logVolunteers', {entry:{
       familyId:fid, eventId:CUR_EVENT.eventId, eventName:CUR_EVENT.name,
-      role:r.role, slot:r.slot||'', session:SESSION, credits:credits
-    }});
-    toast(`Signed up — ${res.credits} ${res.credits===1?'credit':'credits'} pending approval`, 'ok');
+      session:SESSION, volunteer:vol
+    }, spots:spots});
+    if(res.errors && res.errors.length){
+      const part = res.logged ? `Signed up for ${res.logged} — ` : '';
+      toast(`${part}${res.errors.length} just filled up`, res.logged?'':'err');
+    } else {
+      toast(`Signed up for ${res.logged} ${res.logged===1?'spot':'spots'} — ${res.credits} ${res.credits===1?'credit':'credits'} pending`, 'ok');
+    }
     // refresh data so spot counts + progress update, keep family selected
     EVENTS = await apiGet('getEvents');
     FAMILIES = await apiGet('getFamilies');
     showProgress(fid);
     renderEvents();
+    SEL.clear(); $('vol').value='';
     $('event').value=''; onEventChange();
   }catch(err){
     // a full-spot race or other error: refresh counts so the list reflects reality
@@ -413,6 +426,7 @@ async function submitShift(){
 /* ---- Wire up ---- */
 function bindEvents(){
   $('family').addEventListener('change', e=>{ showProgress(e.target.value); refreshSubmit(); });
+  $('vol').addEventListener('input', refreshSubmit);
   $('event').addEventListener('change', onEventChange);
   $('submit').addEventListener('click', submitShift);
   document.querySelectorAll('#seg button').forEach(b=>{

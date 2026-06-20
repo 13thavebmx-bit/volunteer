@@ -200,6 +200,7 @@ tr:last-child td{border-bottom:none}
           <select id="mFam" style="flex:1;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font);background:#fff"><option value="">Family…</option></select>
           <select id="mEvent" style="flex:1;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font);background:#fff"><option value="">Event…</option></select>
         </div>
+        <input type="text" id="mVol" placeholder="Volunteer name" style="width:100%;margin-bottom:8px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font)">
         <div class="inline">
           <select id="mRole" style="flex:1;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font);background:#fff" disabled><option value="">Pick an event first…</option></select>
           <button class="btn primary" id="mAddBtn">Add shift</button>
@@ -240,7 +241,9 @@ tr:last-child td{border-bottom:none}
               <option value="Track maintenance">Track maintenance</option>
               <option value="Fundraiser">Fundraiser</option>
               <option value="Social event">Social event</option>
+              <option value="__other">Other (specify)…</option>
             </select>
+            <input type="text" id="evTypeOther" placeholder="e.g. Skills Training Camp" style="display:none;margin-top:6px">
           </div>
           <div class="field" style="flex:1"><label>Repeats</label>
             <select id="evRepeat">
@@ -330,7 +333,7 @@ tr:last-child td{border-bottom:none}
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
 const PW  = '13thAveVol';   // ← change this to your coordinator password
-const APP_VERSION = '2026.06.19-7';   // version of THIS admin page (GitHub)
+const APP_VERSION = '2026.06.19-8';   // version of THIS admin page (GitHub)
 let LIVE_VERSION = null;              // version reported by the deployed backend
 
 /* Roles pre-filled on every new event. First Aid and Track Safety are always
@@ -432,14 +435,14 @@ function renderApprovals(){
   if(!pend.length){ $('approvals').innerHTML=emptyMsg('All caught up — no shifts waiting for review.'); return; }
   const rows=pend.map(l=>`<tr class="row-pending" data-id="${l.logId}">
       <td><b>${esc(l.surname)}</b><div style="font-size:11.5px;color:var(--muted)">${esc(l.eventName)}${l.session?' · '+esc(l.session):''}</div></td>
-      <td>${esc(l.role)}</td>
+      <td>${esc(l.role)}${l.slot?' <span style="color:var(--muted)">· '+esc(l.slot)+'</span>':''}${l.volunteer?`<div style="font-size:11.5px;color:var(--muted)">${esc(l.volunteer)}</div>`:''}</td>
       <td class="num">${l.credits}</td>
       <td style="white-space:nowrap">
         <button class="btn sm green" data-act="approved" data-id="${l.logId}"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 6"/></svg></button>
         <button class="btn sm red" data-act="rejected" data-id="${l.logId}"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
       </td>
     </tr>`).join('');
-  $('approvals').innerHTML=`<table><thead><tr><th>Family / event</th><th>Role</th><th>Credits</th><th>Decision</th></tr></thead><tbody>${rows}</tbody></table>`;
+  $('approvals').innerHTML=`<table><thead><tr><th>Family / event</th><th>Role / volunteer</th><th>Credits</th><th>Decision</th></tr></thead><tbody>${rows}</tbody></table>`;
   $('approvals').querySelectorAll('button[data-act]').forEach(b=>{
     b.addEventListener('click',()=>decide(b.dataset.id,b.dataset.act,b));
   });
@@ -460,14 +463,15 @@ function mRoleOptions(){
   }).join('');
 }
 async function manualAdd(){
-  const fid=$('mFam').value, eid=$('mEvent').value, ri=$('mRole').value;
+  const fid=$('mFam').value, eid=$('mEvent').value, ri=$('mRole').value, vol=$('mVol').value.trim();
   if(!fid||!eid||ri===''){ toast('Pick a family, event, and role','err'); return; }
+  if(!vol){ toast('Enter the volunteer name','err'); return; }
   const ev=EVENTS.find(e=>String(e.eventId)===String(eid)); const r=ev.roles[+ri];
   $('mAddBtn').disabled=true;
   try{
-    await apiPost('logVolunteer',{entry:{familyId:fid,eventId:ev.eventId,eventName:ev.name,role:r.role,slot:r.slot||'',session:'',credits:r.credits,override:true}});
+    await apiPost('logVolunteer',{entry:{familyId:fid,eventId:ev.eventId,eventName:ev.name,role:r.role,slot:r.slot||'',session:'',credits:r.credits,volunteer:vol,override:true}});
     EVENTS=await apiGet('getEvents'); LOG=await apiGet('getLog'); FAMILIES=await apiGet('getFamilies');
-    $('mRole').value='';
+    $('mRole').value=''; $('mVol').value='';
     renderAll(); toast('Shift added — pending approval','ok');
   }catch(err){ toast(err.message,'err'); }
   $('mAddBtn').disabled=false;
@@ -556,7 +560,7 @@ function startEdit(id){
   const e=EVENTS.find(x=>String(x.eventId)===String(id)); if(!e) return;
   EDIT_ID=id;
   $('evName').value=e.name||'';
-  $('evType').value=e.type||'';
+  setTypeField(e.type||'');
   $('evRepeat').value='once'; $('evRepeat').disabled=true;
   $('weeklyWrap').style.display='none'; $('onceWrap').style.display='block';
   $('evDate').value=e.date||'';
@@ -575,7 +579,14 @@ function exitEdit(){
   $('addEvBtn').textContent='Add event';
   $('cancelEdit').style.display='none';
   $('evName').value=''; $('evNotes').value=''; $('evDate').value='';
+  resetTypeOther();
   loadTemplate();
+}
+// Put a saved type into the dropdown, or into the Other field if it's custom.
+function setTypeField(type){
+  const known=[...$('evType').options].some(o=>o.value===type && o.value!=='__other');
+  if(known){ $('evType').value=type; resetTypeOther(); }
+  else { $('evType').value='__other'; $('evTypeOther').value=type; $('evTypeOther').style.display='block'; }
 }
 function renderEvents(){
   if(!EVENTS.length){ $('evList').innerHTML=emptyMsg('No events yet. Add the season\u2019s events above.'); return; }
@@ -621,33 +632,38 @@ async function cancelEv(id,to,btn){
 }
 async function addEv(){
   const name=$('evName').value.trim(); if(!name){ toast('Give the event a name','err'); return; }
+  if($('evType').value==='__other' && !$('evTypeOther').value.trim()){ toast('Enter the custom event type','err'); return; }
   if(!ROLES_DRAFT.length){ toast('Add at least one role','err'); return; }
+  const type=eventTypeValue();
   $('addEvBtn').disabled=true;
   try{
     if(EDIT_ID){
-      EVENTS=await apiPost('updateEvent',{eventId:EDIT_ID,event:{name,type:$('evType').value,date:$('evDate').value,notes:$('evNotes').value,roles:ROLES_DRAFT}});
+      EVENTS=await apiPost('updateEvent',{eventId:EDIT_ID,event:{name,type,date:$('evDate').value,notes:$('evNotes').value,roles:ROLES_DRAFT}});
       toast('Changes saved','ok');
       exitEdit();
       renderAll();
     } else if($('evRepeat').value==='weekly'){
       const weekdays=[...document.querySelectorAll('#dowPick .dow.on')].map(b=>+b.dataset.d);
       if(!weekdays.length){ toast('Pick at least one weekday','err'); $('addEvBtn').disabled=false; return; }
-      const res=await apiPost('addRecurringEvents',{spec:{name,type:$('evType').value,weekdays,startDate:$('evStart').value,endDate:$('evEnd').value,notes:$('evNotes').value,roles:ROLES_DRAFT}});
+      const res=await apiPost('addRecurringEvents',{spec:{name,type,weekdays,startDate:$('evStart').value,endDate:$('evEnd').value,notes:$('evNotes').value,roles:ROLES_DRAFT}});
       EVENTS=res.events;
       toast(`Created ${res.created} events`,'ok');
       $('evStart').value=''; $('evEnd').value=''; document.querySelectorAll('#dowPick .dow').forEach(b=>b.classList.remove('on'));
-      $('evName').value=''; $('evNotes').value=''; loadTemplate();
+      $('evName').value=''; $('evNotes').value=''; resetTypeOther(); loadTemplate();
       renderAll();
     } else {
-      EVENTS=await apiPost('addEvent',{event:{name,type:$('evType').value,date:$('evDate').value,notes:$('evNotes').value,roles:ROLES_DRAFT}});
+      EVENTS=await apiPost('addEvent',{event:{name,type,date:$('evDate').value,notes:$('evNotes').value,roles:ROLES_DRAFT}});
       toast('Event added','ok');
       $('evDate').value='';
-      $('evName').value=''; $('evNotes').value=''; loadTemplate();
+      $('evName').value=''; $('evNotes').value=''; resetTypeOther(); loadTemplate();
       renderAll();
     }
   }catch(err){ toast(err.message,'err'); }
   $('addEvBtn').disabled=false;
 }
+// Resolve the chosen event type — custom text when "Other (specify)" is picked.
+function eventTypeValue(){ return $('evType').value==='__other' ? ($('evTypeOther').value.trim()||'Other') : $('evType').value; }
+function resetTypeOther(){ $('evTypeOther').value=''; $('evTypeOther').style.display='none'; }
 async function removeEv(id,btn){
   if(!confirm('Remove this event entirely? (To just stop it counting, use Cancel instead.)')) return;
   btn.disabled=true;
@@ -667,11 +683,12 @@ function renderLog(){
       <td style="white-space:nowrap;font-size:12px;color:var(--muted)">${fmtTs(l.timestamp)}</td>
       <td><b>${esc(l.surname)}</b></td>
       <td>${esc(l.eventName)}${l.session?'<div style="font-size:11px;color:var(--muted)">'+esc(l.session)+'</div>':''}</td>
-      <td>${esc(l.role)}</td>
+      <td>${esc(l.role)}${l.slot?'<div style="font-size:11px;color:var(--muted)">'+esc(l.slot)+'</div>':''}</td>
+      <td>${esc(l.volunteer||'—')}</td>
       <td class="num">${l.credits}</td>
       <td><span class="tag ${l.eventCancelled?'cancelled':l.status}">${l.eventCancelled?'cancelled':l.status}</span></td>
     </tr>`).join('');
-  $('logList').innerHTML=`<table><thead><tr><th>When</th><th>Family</th><th>Event</th><th>Role</th><th>Cr</th><th>Status</th></tr></thead><tbody>${body}</tbody></table>`;
+  $('logList').innerHTML=`<table><thead><tr><th>When</th><th>Family</th><th>Event</th><th>Role</th><th>Volunteer</th><th>Cr</th><th>Status</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 function fmtTs(iso){ if(!iso) return ''; const d=new Date(iso); return isNaN(d)?iso:d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}); }
 
@@ -734,8 +751,8 @@ function exportStandings(){
   downloadCsv('volunteer-standings.csv',rows);
 }
 function exportLog(){
-  const rows=[['When','Family','Event','Role','Session','Credits','Status']];
-  LOG.forEach(l=>rows.push([fmtTs(l.timestamp),l.surname,l.eventName,l.role,l.session,l.credits,l.status]));
+  const rows=[['When','Family','Event','Role','Slot','Volunteer','Session','Credits','Status']];
+  LOG.forEach(l=>rows.push([fmtTs(l.timestamp),l.surname,l.eventName,l.role,l.slot||'',l.volunteer||'',l.session,l.credits,l.status]));
   downloadCsv('volunteer-log.csv',rows);
 }
 
@@ -749,7 +766,7 @@ $('addFamBtn').addEventListener('click',addFam);
 $('mEvent').addEventListener('change',mRoleOptions);
 $('mAddBtn').addEventListener('click',manualAdd);
 $('newFam').addEventListener('keydown',e=>{if(e.key==='Enter')addFam();});
-$('evType').addEventListener('change',loadTemplate);
+$('evType').addEventListener('change',()=>{ $('evTypeOther').style.display = $('evType').value==='__other'?'block':'none'; loadTemplate(); });
 $('evRepeat').addEventListener('change',()=>{
   const weekly=$('evRepeat').value==='weekly';
   $('weeklyWrap').style.display=weekly?'block':'none';
