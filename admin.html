@@ -92,6 +92,16 @@ tr:last-child td{border-bottom:none}
 .tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:5px;white-space:nowrap}
 .tag.met{background:var(--ok-tint);color:var(--ok)}
 .tag.short{background:var(--warn-tint);color:var(--warn)}
+.tag.board{background:#E6F1FB;color:#185FA5}
+.tag.cancelled{background:var(--bad-tint);color:var(--bad)}
+.dow{padding:8px 11px;border:1px solid var(--line);background:#fff;border-radius:var(--radius-sm);font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
+.dow.on{border-color:var(--teal);background:var(--teal-tint);color:var(--teal-dark)}
+.ev-cancelled{opacity:.55}
+.ev-cancelled b{text-decoration:line-through}
+.bsw{width:42px;height:24px;border-radius:13px;border:none;cursor:pointer;position:relative;transition:.15s;background:#CBD5D8;flex-shrink:0}
+.bsw.on{background:var(--teal)}
+.bsw>i{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.15s}
+.bsw.on>i{left:20px}
 .tag.pending{background:var(--warn-tint);color:var(--warn)}
 .tag.approved{background:var(--ok-tint);color:var(--ok)}
 .tag.rejected{background:var(--bad-tint);color:var(--bad)}
@@ -213,8 +223,34 @@ tr:last-child td{border-bottom:none}
               <option value="Social event">Social event</option>
             </select>
           </div>
-          <div class="field" style="flex:1"><label>Date</label><input type="date" id="evDate"></div>
+          <div class="field" style="flex:1"><label>Repeats</label>
+            <select id="evRepeat">
+              <option value="once">One-time</option>
+              <option value="weekly">Weekly (a range of dates)</option>
+            </select>
+          </div>
         </div>
+
+        <div id="onceWrap" class="field"><label>Date</label><input type="date" id="evDate"></div>
+
+        <div id="weeklyWrap" style="display:none">
+          <div class="field"><label>On these days</label>
+            <div id="dowPick" style="display:flex;gap:6px;flex-wrap:wrap">
+              <button type="button" class="dow" data-d="1">Mon</button>
+              <button type="button" class="dow" data-d="2">Tue</button>
+              <button type="button" class="dow" data-d="3">Wed</button>
+              <button type="button" class="dow" data-d="4">Thu</button>
+              <button type="button" class="dow" data-d="5">Fri</button>
+              <button type="button" class="dow" data-d="6">Sat</button>
+              <button type="button" class="dow" data-d="7">Sun</button>
+            </div>
+          </div>
+          <div class="inline">
+            <div class="field" style="flex:1"><label>From</label><input type="date" id="evStart"></div>
+            <div class="field" style="flex:1"><label>Until</label><input type="date" id="evEnd"></div>
+          </div>
+        </div>
+
         <div class="field"><label>Notes (optional)</label><input type="text" id="evNotes" placeholder="e.g. Sask Cup Race 1"></div>
         <div class="field"><label>Roles &amp; credits</label>
           <div class="roles-edit" id="rolesEdit"></div>
@@ -223,7 +259,7 @@ tr:last-child td{border-bottom:none}
         <button class="btn primary" id="addEvBtn" style="margin-top:6px">Add event</button>
       </div>
     </div>
-    <div class="card"><div id="evList"></div></div>
+    <div class="card"><div class="card-head">Scheduled events <label style="font-weight:400;font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:5px"><input type="checkbox" id="evUpcoming" checked style="width:auto">Upcoming only</label></div><div id="evList"></div></div>
   </div>
 
   <!-- LOG -->
@@ -342,8 +378,8 @@ function renderAll(){
 /* ---- Dashboard ---- */
 function renderDash(){
   const need=SETTINGS.bondCredits;
-  const bondsMet=FAMILIES.filter(f=>f.approved>=need).length;
-  const pending=LOG.filter(l=>l.status==='pending').length;
+  const bondsMet=FAMILIES.filter(f=>f.board||f.approved>=need).length;
+  const pending=LOG.filter(l=>l.status==='pending' && !l.eventCancelled).length;
   const totalCred=FAMILIES.reduce((s,f)=>s+f.approved,0);
   $('stFam').textContent=FAMILIES.length;
   $('stBond').textContent=bondsMet;
@@ -351,15 +387,17 @@ function renderDash(){
   $('stCred').textContent=totalCred;
 
   if(!FAMILIES.length){ $('standings').innerHTML=emptyMsg('No families yet. Add them on the Families tab.'); return; }
-  const rows=[...FAMILIES].sort((a,b)=>b.approved-a.approved).map(f=>{
-    const pct=Math.min(100,Math.round((f.approved/need)*100));
-    const done=f.approved>=need;
+  const rows=[...FAMILIES].sort((a,b)=>(b.board-a.board)||(b.approved-a.approved)).map(f=>{
+    const pct=f.board?100:Math.min(100,Math.round((f.approved/need)*100));
+    const done=f.board||f.approved>=need;
+    const statusTag=f.board?'<span class="tag board">Met · Board</span>'
+      :(done?'<span class="tag met">Met</span>':'<span class="tag short">'+(need-f.approved)+' to go</span>');
     return `<tr>
       <td>${esc(f.surname)}</td>
       <td class="num">${f.approved}<span style="color:var(--muted-soft);font-weight:400"> / ${need}</span></td>
       <td>${f.pending?`<span class="tag pending">+${f.pending}</span>`:'<span style="color:var(--muted-soft)">—</span>'}</td>
       <td><div class="miniBar ${done?'done':''}"><i style="width:${pct}%"></i></div></td>
-      <td>${done?'<span class="tag met">Met</span>':'<span class="tag short">'+(need-f.approved)+' to go</span>'}</td>
+      <td>${statusTag}</td>
     </tr>`;
   }).join('');
   $('standings').innerHTML=`<table><thead><tr><th>Family</th><th>Approved</th><th>Pending</th><th>Progress</th><th>Bond</th></tr></thead><tbody>${rows}</tbody></table>`;
@@ -367,7 +405,7 @@ function renderDash(){
 
 /* ---- Approvals ---- */
 function renderApprovals(){
-  const pend=LOG.filter(l=>l.status==='pending');
+  const pend=LOG.filter(l=>l.status==='pending' && !l.eventCancelled);
   $('apvPill').textContent=pend.length;
   $('apvPill').style.display=pend.length?'flex':'none';
   $('apvSub').textContent=pend.length?`${pend.length} waiting`:'';
@@ -403,18 +441,29 @@ function renderFamilies(){
   if(!FAMILIES.length){ $('famList').innerHTML=emptyMsg('No families registered yet.'); }
   else{
     const rows=FAMILIES.map(f=>{
-      const done=f.approved>=need;
-      return `<tr>
+      const done=f.board||f.approved>=need;
+      const statusTag=f.board?'<span class="tag board">Bond met · Board</span>'
+        :(done?'<span class="tag met">Bond met</span>':'<span class="tag short">short</span>');
+      return `<tr ${f.board?'style="background:#F5F9FE"':''}>
         <td><b>${esc(f.surname)}</b></td>
-        <td class="num">${f.approved} / ${need}</td>
+        <td class="num"${f.board?' style="color:var(--muted-soft)"':''}>${f.approved} / ${need}</td>
         <td>${f.pending?`<span class="tag pending">+${f.pending} pending</span>`:'<span style="color:var(--muted-soft)">—</span>'}</td>
-        <td>${done?'<span class="tag met">Bond met</span>':'<span class="tag short">short</span>'}</td>
+        <td>${statusTag}</td>
+        <td style="text-align:center"><button class="bsw ${f.board?'on':''}" data-board="${f.familyId}" aria-label="Toggle board for ${esc(f.surname)}"><i></i></button></td>
         <td style="text-align:right"><button class="x" data-rm="${f.familyId}" title="Remove">&times;</button></td>
       </tr>`;
     }).join('');
-    $('famList').innerHTML=`<table><thead><tr><th>Family</th><th>Approved</th><th>Pending</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+    $('famList').innerHTML=`<table><thead><tr><th>Family</th><th>Approved</th><th>Pending</th><th>Status</th><th style="text-align:center">Board</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
     $('famList').querySelectorAll('button[data-rm]').forEach(b=>b.addEventListener('click',()=>removeFam(b.dataset.rm,b)));
+    $('famList').querySelectorAll('button[data-board]').forEach(b=>b.addEventListener('click',()=>toggleBoard(b.dataset.board,b)));
   }
+}
+async function toggleBoard(id,btn){
+  const f=FAMILIES.find(x=>String(x.familyId)===String(id));
+  const next=!(f&&f.board);
+  btn.disabled=true;
+  try{ FAMILIES=await apiPost('setFamilyBoard',{familyId:id,board:next}); renderAll(); toast(next?'Marked as board — bond met':'Board flag removed','ok'); }
+  catch(err){ toast(err.message,'err'); btn.disabled=false; }
 }
 async function addFam(){
   const name=$('newFam').value.trim(); if(!name) return;
@@ -451,30 +500,64 @@ function loadTemplate(){
 }
 function renderEvents(){
   if(!EVENTS.length){ $('evList').innerHTML=emptyMsg('No events yet. Add the season\u2019s events above.'); return; }
-  const rows=EVENTS.map(e=>{
+  const upcomingOnly=$('evUpcoming').checked;
+  const today=new Date(); today.setHours(0,0,0,0);
+  let list=[...EVENTS];
+  if(upcomingOnly){
+    list=list.filter(e=>{ if(!e.date) return true; const d=evDate_(e.date); return !d || d>=today; });
+  }
+  list.sort((a,b)=>String(a.date||'9999').localeCompare(String(b.date||'9999')));
+  if(!list.length){ $('evList').innerHTML=emptyMsg('No upcoming events. Uncheck “Upcoming only” to see past ones.'); return; }
+  const rows=list.map(e=>{
     const roleStr=e.roles.map(r=>`${esc(r.role)} (${r.credits})`).join(', ');
-    return `<tr>
-      <td><b>${esc(e.name)}</b><div style="font-size:11.5px;color:var(--muted)">${esc(e.type)}${e.date?' · '+e.date:''}${e.notes?' · '+esc(e.notes):''}</div>
+    const cancelled=e.status==='cancelled';
+    return `<tr class="${cancelled?'ev-cancelled':''}">
+      <td><b>${esc(e.name)}</b>${cancelled?' <span class="tag cancelled">Cancelled</span>':''}
+        <div style="font-size:11.5px;color:var(--muted)">${esc(e.type)}${e.date?' · '+fmtDate_(e.date):''}${e.notes?' · '+esc(e.notes):''}</div>
         <div style="font-size:11.5px;color:var(--muted-soft);margin-top:3px">${roleStr}</div></td>
-      <td style="text-align:right;vertical-align:top"><button class="x" data-rm="${e.eventId}" title="Remove">&times;</button></td>
+      <td style="text-align:right;vertical-align:top;white-space:nowrap">
+        <button class="btn sm ${cancelled?'':'ghost'}" data-cx="${e.eventId}" data-to="${cancelled?'active':'cancelled'}">${cancelled?'Reactivate':'Cancel'}</button>
+        <button class="x" data-rm="${e.eventId}" title="Remove">&times;</button>
+      </td>
     </tr>`;
   }).join('');
   $('evList').innerHTML=`<table><tbody>${rows}</tbody></table>`;
   $('evList').querySelectorAll('button[data-rm]').forEach(b=>b.addEventListener('click',()=>removeEv(b.dataset.rm,b)));
+  $('evList').querySelectorAll('button[data-cx]').forEach(b=>b.addEventListener('click',()=>cancelEv(b.dataset.cx,b.dataset.to,b)));
+}
+function evDate_(s){ if(!s) return null; const p=String(s).split('-'); if(p.length<3) return null; const d=new Date(+p[0],+p[1]-1,+p[2]); return isNaN(d)?null:d; }
+function fmtDate_(s){ const d=evDate_(s); return d?d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}):s; }
+async function cancelEv(id,to,btn){
+  const verb=to==='cancelled'?'Cancel':'Reactivate';
+  if(to==='cancelled' && !confirm('Cancel this event? Any shifts logged for it will stop counting (they stay in the log and you can reactivate later).')) return;
+  btn.disabled=true;
+  try{ EVENTS=await apiPost('setEventStatus',{eventId:id,status:to}); LOG=await apiGet('getLog'); FAMILIES=await apiGet('getFamilies'); renderAll(); toast(to==='cancelled'?'Event cancelled — shifts no longer count':'Event reactivated','ok'); }
+  catch(err){ toast(err.message,'err'); btn.disabled=false; }
 }
 async function addEv(){
   const name=$('evName').value.trim(); if(!name){ toast('Give the event a name','err'); return; }
   if(!ROLES_DRAFT.length){ toast('Add at least one role','err'); return; }
   $('addEvBtn').disabled=true;
   try{
-    EVENTS=await apiPost('addEvent',{event:{name,type:$('evType').value,date:$('evDate').value,notes:$('evNotes').value,roles:ROLES_DRAFT}});
-    $('evName').value=''; $('evNotes').value=''; $('evDate').value=''; loadTemplate();
-    renderAll(); toast('Event added','ok');
+    if($('evRepeat').value==='weekly'){
+      const weekdays=[...document.querySelectorAll('#dowPick .dow.on')].map(b=>+b.dataset.d);
+      if(!weekdays.length){ toast('Pick at least one weekday','err'); $('addEvBtn').disabled=false; return; }
+      const res=await apiPost('addRecurringEvents',{spec:{name,type:$('evType').value,weekdays,startDate:$('evStart').value,endDate:$('evEnd').value,notes:$('evNotes').value,roles:ROLES_DRAFT}});
+      EVENTS=res.events;
+      toast(`Created ${res.created} events`,'ok');
+      $('evStart').value=''; $('evEnd').value=''; document.querySelectorAll('#dowPick .dow').forEach(b=>b.classList.remove('on'));
+    } else {
+      EVENTS=await apiPost('addEvent',{event:{name,type:$('evType').value,date:$('evDate').value,notes:$('evNotes').value,roles:ROLES_DRAFT}});
+      toast('Event added','ok');
+      $('evDate').value='';
+    }
+    $('evName').value=''; $('evNotes').value=''; loadTemplate();
+    renderAll();
   }catch(err){ toast(err.message,'err'); }
   $('addEvBtn').disabled=false;
 }
 async function removeEv(id,btn){
-  if(!confirm('Remove this event?')) return;
+  if(!confirm('Remove this event entirely? (To just stop it counting, use Cancel instead.)')) return;
   btn.disabled=true;
   try{ EVENTS=await apiPost('removeEvent',{eventId:id}); renderAll(); toast('Event removed'); }
   catch(err){ toast(err.message,'err'); btn.disabled=false; }
@@ -494,7 +577,7 @@ function renderLog(){
       <td>${esc(l.eventName)}${l.session?'<div style="font-size:11px;color:var(--muted)">'+esc(l.session)+'</div>':''}</td>
       <td>${esc(l.role)}</td>
       <td class="num">${l.credits}</td>
-      <td><span class="tag ${l.status}">${l.status}</span></td>
+      <td><span class="tag ${l.eventCancelled?'cancelled':l.status}">${l.eventCancelled?'cancelled':l.status}</span></td>
     </tr>`).join('');
   $('logList').innerHTML=`<table><thead><tr><th>When</th><th>Family</th><th>Event</th><th>Role</th><th>Cr</th><th>Status</th></tr></thead><tbody>${body}</tbody></table>`;
 }
@@ -568,6 +651,14 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>show
 $('addFamBtn').addEventListener('click',addFam);
 $('newFam').addEventListener('keydown',e=>{if(e.key==='Enter')addFam();});
 $('evType').addEventListener('change',loadTemplate);
+$('evRepeat').addEventListener('change',()=>{
+  const weekly=$('evRepeat').value==='weekly';
+  $('weeklyWrap').style.display=weekly?'block':'none';
+  $('onceWrap').style.display=weekly?'none':'block';
+  $('addEvBtn').textContent=weekly?'Generate events':'Add event';
+});
+document.querySelectorAll('#dowPick .dow').forEach(b=>b.addEventListener('click',()=>b.classList.toggle('on')));
+$('evUpcoming').addEventListener('change',renderEvents);
 $('addRoleBtn').addEventListener('click',()=>{ROLES_DRAFT.push({role:'',credits:1});renderRolesEdit();});
 $('addEvBtn').addEventListener('click',addEv);
 $('fltFam').addEventListener('change',renderLog);

@@ -269,10 +269,31 @@ function renderFamilies(){
   sel.innerHTML='<option value="">Select your family…</option>'+
     FAMILIES.map(f=>`<option value="${f.familyId}">${esc(f.surname)}</option>`).join('');
 }
+function weekRange_(){
+  const now=new Date(); const g=now.getDay(); // 0 Sun..6 Sat
+  const mon=new Date(now); mon.setDate(now.getDate()+(g===0?-6:1-g)); mon.setHours(0,0,0,0);
+  const sun=new Date(mon); sun.setDate(mon.getDate()+6); sun.setHours(23,59,59,999);
+  return [mon,sun];
+}
+function inThisWeek_(dateStr){
+  if(!dateStr) return true; // undated standing events stay available
+  const p=String(dateStr).split('-'); if(p.length<3) return true;
+  const d=new Date(+p[0],+p[1]-1,+p[2]);
+  const [mon,sun]=weekRange_();
+  return d>=mon && d<=sun;
+}
+function evLabel_(s){ if(!s) return ''; const p=String(s).split('-'); if(p.length<3) return ' — '+s; const d=new Date(+p[0],+p[1]-1,+p[2]); return isNaN(d)?(' — '+s):(' — '+d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})); }
 function renderEvents(){
   const sel=$('event');
+  const wk=EVENTS.filter(e=>e.status!=='cancelled' && inThisWeek_(e.date))
+                 .sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+  if(!wk.length){
+    sel.innerHTML='<option value="">No events scheduled this week</option>';
+    sel.disabled=true; return;
+  }
+  sel.disabled=false;
   sel.innerHTML='<option value="">Select an event…</option>'+
-    EVENTS.map(e=>`<option value="${e.eventId}">${esc(e.name)}${e.date?(' — '+e.date):''}</option>`).join('');
+    wk.map(e=>`<option value="${e.eventId}">${esc(e.name)}${evLabel_(e.date)}</option>`).join('');
 }
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
@@ -284,12 +305,15 @@ function showProgress(fid){
   box.classList.add('show');
   $('pName').textContent = f.surname;
   $('pApproved').textContent = f.approved;
-  const pct = Math.min(100, Math.round((f.approved/need)*100));
+  const pct = f.board ? 100 : Math.min(100, Math.round((f.approved/need)*100));
   $('pBar').style.width = pct+'%';
-  const done = f.approved >= need;
+  const done = f.board || f.approved >= need;
   $('pBarWrap').classList.toggle('done', done);
   $('pBond').style.display = done ? 'inline-flex' : 'none';
-  $('pRemain').textContent = done ? 'Bond requirement met' : (Math.max(0,need-f.approved)+' to go');
+  $('pBond').innerHTML = f.board
+    ? '<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg> Bond covered — board member'
+    : '<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg> Bond requirement met';
+  $('pRemain').textContent = f.board ? 'Board member — bond covered' : (done ? 'Bond requirement met' : (Math.max(0,need-f.approved)+' to go'));
   $('pPending').textContent = f.pending>0 ? ('+'+f.pending+' pending approval') : '';
 }
 
