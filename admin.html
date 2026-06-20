@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>13th Ave BMX — Volunteer Admin</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
+:root{
+  --teal:#0098B8; --teal-dark:#007e99; --teal-tint:#E8F6FA;
+  --red:#ED1C24; --ink:#1A1A1A; --paper:#FFFFFF;
+  --line:#E2E6E8; --line-soft:#EEF1F3;
+  --muted:#5C6B70; --muted-soft:#8A979C;
+  --ok:#1f8a4c; --ok-tint:#E7F4EC;
+  --warn:#9A6700; --warn-tint:#FFF6E0;
+  --bad:#B42318; --bad-tint:#FDECEA;
+  --radius:12px; --radius-sm:8px;
+  --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.10);
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:var(--font);background:#F4F6F7;color:var(--ink);font-size:15px;line-height:1.4;-webkit-font-smoothing:antialiased}
+.wrap{max-width:860px;margin:0 auto;min-height:100%;background:#F4F6F7}
+
+/* Login */
+.login{position:fixed;inset:0;background:var(--teal);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px}
+.login .box{background:#fff;border-radius:var(--radius);padding:28px 24px;width:100%;max-width:340px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.login .logo{height:60px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center}
+.login .logo img{height:100%}
+.login h1{font-family:'Anton',var(--font);font-weight:400;text-transform:uppercase;letter-spacing:.5px;font-size:22px;color:var(--ink);margin-bottom:4px}
+.login p{font-size:12.5px;color:var(--muted);margin-bottom:18px}
+.login input{width:100%;padding:13px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:16px;text-align:center;margin-bottom:12px;font-family:var(--font)}
+.login input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(0,152,184,.12)}
+.login .err{color:var(--bad);font-size:12.5px;height:16px;margin-bottom:8px}
+
+/* Topbar */
+.head{background:var(--teal);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:40;box-shadow:var(--shadow)}
+.logo{height:44px;display:flex;align-items:center;flex-shrink:0}
+.logo img{height:100%;width:auto;display:block}
+.head-title{font-family:'Anton',var(--font);font-weight:400;font-size:18px;letter-spacing:.4px;text-transform:uppercase;text-shadow:0 1px 2px rgba(0,0,0,.18);line-height:1}
+.head-sub{font-size:10.5px;color:#CDEFF6;letter-spacing:.08em;text-transform:uppercase;margin-top:2px}
+.head-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.season-chip{font-size:11px;font-weight:700;background:rgba(255,255,255,.18);color:#fff;padding:5px 11px;border-radius:20px}
+.signout{background:none;border:1px solid rgba(255,255,255,.4);color:#fff;font-size:12px;font-weight:600;padding:6px 11px;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--font)}
+
+/* Tabs */
+.tabs{display:flex;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:68px;z-index:30;overflow-x:auto}
+.tab{flex:1;min-width:78px;padding:11px 6px 9px;border:none;background:none;font-family:var(--font);font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;display:flex;flex-direction:column;align-items:center;gap:3px;white-space:nowrap;position:relative}
+.tab svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8}
+.tab.on{color:var(--teal);border-bottom-color:var(--red)}
+.tab .pill{position:absolute;top:6px;right:50%;transform:translateX(26px);background:var(--red);color:#fff;font-size:10px;font-weight:700;min-width:17px;height:17px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+
+/* Sections */
+.sec{display:none;padding:16px 14px 80px}
+.sec.on{display:block}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap}
+.sec-head h2{font-size:18px;font-weight:800}
+.sec-head .sub{font-size:12px;color:var(--muted)}
+
+/* Buttons */
+.btn{font-family:var(--font);font-size:14px;font-weight:600;padding:9px 14px;border-radius:var(--radius-sm);border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.12s}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn.primary:active{background:var(--teal-dark)}
+.btn.green{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.red{background:var(--red);border-color:var(--red);color:#fff}
+.btn.sm{padding:6px 11px;font-size:13px}
+.btn.ghost{background:transparent}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px 8px;text-align:center}
+.stat b{display:block;font-family:'Anton',var(--font);font-size:26px;color:var(--teal);line-height:1}
+.stat.amber b{color:var(--warn)} .stat.green b{color:var(--ok)}
+.stat span{font-size:10.5px;color:var(--muted);margin-top:5px;display:block;line-height:1.2}
+@media(max-width:560px){.stats{grid-template-columns:repeat(2,1fr)}}
+
+/* Cards / tables */
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:14px}
+.card-head{padding:11px 14px;border-bottom:1px solid var(--line-soft);font-size:13px;font-weight:700;color:var(--ink);display:flex;justify-content:space-between;align-items:center}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:700;padding:9px 12px;background:#F7FAFB;border-bottom:1px solid var(--line-soft)}
+td{padding:10px 12px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+.num{font-variant-numeric:tabular-nums;font-weight:700}
+.miniBar{height:7px;background:var(--line-soft);border-radius:4px;overflow:hidden;min-width:60px}
+.miniBar>i{display:block;height:100%;background:var(--teal);border-radius:4px}
+.miniBar.done>i{background:var(--ok)}
+.tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:5px;white-space:nowrap}
+.tag.met{background:var(--ok-tint);color:var(--ok)}
+.tag.short{background:var(--warn-tint);color:var(--warn)}
+.tag.pending{background:var(--warn-tint);color:var(--warn)}
+.tag.approved{background:var(--ok-tint);color:var(--ok)}
+.tag.rejected{background:var(--bad-tint);color:var(--bad)}
+.row-pending{background:#FFFBF0}
+
+/* Forms */
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14.5px;font-family:var(--font);background:#fff;color:var(--ink)}
+.field textarea{resize:vertical;min-height:52px}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(0,152,184,.12)}
+.inline{display:flex;gap:8px}
+.inline input{flex:1}
+.roles-edit{border:1px dashed var(--line);border-radius:var(--radius-sm);padding:10px;margin-bottom:12px}
+.role-row{display:grid;grid-template-columns:1fr 70px 32px;gap:8px;margin-bottom:8px;align-items:center}
+.role-row input{padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13.5px;font-family:var(--font)}
+.role-del{background:var(--bad-tint);color:var(--bad);border:none;border-radius:6px;cursor:pointer;font-size:16px;line-height:1;height:34px}
+.x{background:none;border:none;color:var(--muted-soft);cursor:pointer;font-size:18px;padding:2px 6px;border-radius:6px}
+.x:hover{background:var(--bad-tint);color:var(--bad)}
+
+.filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.filters select{flex:1;min-width:120px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font);background:#fff}
+
+.empty{text-align:center;color:var(--muted);padding:34px 16px;font-size:13.5px}
+.empty svg{width:34px;height:34px;stroke:var(--muted-soft);fill:none;stroke-width:1.6;margin-bottom:8px}
+.loading{text-align:center;color:var(--muted);padding:50px;font-size:14px}
+
+/* Toast */
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;background:var(--ink);color:#fff;padding:12px 18px;border-radius:24px;font-size:13.5px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:100;transition:.25s;pointer-events:none;max-width:90%;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.ok{background:var(--ok)} .toast.err{background:var(--bad)}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login" id="login">
+  <div class="box">
+    <div class="logo" id="loginLogo"></div>
+    <h1>Volunteer Admin</h1>
+    <p>13th Ave BMX · coordinator access</p>
+    <input type="password" id="pw" placeholder="Coordinator password" autocomplete="current-password">
+    <div class="err" id="loginErr"></div>
+    <button class="btn primary" id="loginBtn" style="width:100%;justify-content:center">Sign in</button>
+  </div>
+</div>
+
+<div class="wrap" id="app" style="display:none">
+
+  <div class="head">
+    <div class="logo" id="logo"></div>
+    <div>
+      <div class="head-title">Volunteer Admin</div>
+      <div class="head-sub" id="seasonSub">Season</div>
+    </div>
+    <div class="head-right">
+      <span class="season-chip" id="seasonChip">—</span>
+      <button class="signout" id="signout">Sign out</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab on" data-tab="dash"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><rect x="7" y="10" width="3" height="8"/><rect x="12" y="6" width="3" height="12"/><rect x="17" y="13" width="3" height="5"/></svg>Dashboard</button>
+    <button class="tab" data-tab="approve"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Approvals<span class="pill" id="apvPill" style="display:none">0</span></button>
+    <button class="tab" data-tab="fam"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>Families</button>
+    <button class="tab" data-tab="ev"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Events</button>
+    <button class="tab" data-tab="log"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>Full log</button>
+    <button class="tab" data-tab="setup"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Setup</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="sec on" id="sec-dash">
+    <div class="stats">
+      <div class="stat"><b id="stFam">0</b><span>Families</span></div>
+      <div class="stat green"><b id="stBond">0</b><span>Bonds met</span></div>
+      <div class="stat amber"><b id="stPend">0</b><span>Pending shifts</span></div>
+      <div class="stat"><b id="stCred">0</b><span>Approved credits</span></div>
+    </div>
+    <div class="sec-head"><h2>Family standings</h2><button class="btn sm" id="expStandings"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export CSV</button></div>
+    <div class="card"><div id="standings"></div></div>
+  </div>
+
+  <!-- APPROVALS -->
+  <div class="sec" id="sec-approve">
+    <div class="sec-head"><h2>Pending approvals</h2><span class="sub" id="apvSub"></span></div>
+    <div class="card"><div id="approvals"></div></div>
+  </div>
+
+  <!-- FAMILIES -->
+  <div class="sec" id="sec-fam">
+    <div class="sec-head"><h2>Families</h2><span class="sub">One bond per family · approved credits shown</span></div>
+    <div class="card">
+      <div class="card-head">Add a family</div>
+      <div style="padding:12px 14px">
+        <div class="inline">
+          <input type="text" id="newFam" placeholder="Family surname (e.g. Fellner)">
+          <button class="btn primary" id="addFamBtn">Add</button>
+        </div>
+      </div>
+    </div>
+    <div class="card"><div id="famList"></div></div>
+  </div>
+
+  <!-- EVENTS -->
+  <div class="sec" id="sec-ev">
+    <div class="sec-head"><h2>Events</h2><span class="sub">Roles &amp; credits are editable per event</span></div>
+    <div class="card">
+      <div class="card-head">Add an event</div>
+      <div style="padding:14px">
+        <div class="field"><label>Event name</label><input type="text" id="evName" placeholder="e.g. Thursday Club Race"></div>
+        <div class="inline">
+          <div class="field" style="flex:1"><label>Type</label>
+            <select id="evType">
+              <option value="Practice night">Practice night</option>
+              <option value="Club race">Club race</option>
+              <option value="Provincial / Sask Cup">Provincial / Sask Cup</option>
+              <option value="Track maintenance">Track maintenance</option>
+              <option value="Fundraiser">Fundraiser</option>
+              <option value="Social event">Social event</option>
+            </select>
+          </div>
+          <div class="field" style="flex:1"><label>Date</label><input type="date" id="evDate"></div>
+        </div>
+        <div class="field"><label>Notes (optional)</label><input type="text" id="evNotes" placeholder="e.g. Sask Cup Race 1"></div>
+        <div class="field"><label>Roles &amp; credits</label>
+          <div class="roles-edit" id="rolesEdit"></div>
+          <button class="btn sm ghost" id="addRoleBtn">+ Add role</button>
+        </div>
+        <button class="btn primary" id="addEvBtn" style="margin-top:6px">Add event</button>
+      </div>
+    </div>
+    <div class="card"><div id="evList"></div></div>
+  </div>
+
+  <!-- LOG -->
+  <div class="sec" id="sec-log">
+    <div class="sec-head"><h2>Full log</h2><button class="btn sm" id="expLog"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export CSV</button></div>
+    <div class="filters">
+      <select id="fltFam"><option value="">All families</option></select>
+      <select id="fltStatus"><option value="">All statuses</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select>
+    </div>
+    <div class="card"><div id="logList"></div></div>
+  </div>
+
+  <!-- SETUP -->
+  <div class="sec" id="sec-setup">
+    <div class="sec-head"><h2>Setup</h2><span class="sub">Seasons &amp; bond settings</span></div>
+    <div class="card">
+      <div class="card-head">Season settings</div>
+      <div style="padding:14px">
+        <div class="field"><label>Season label</label><input type="text" id="setLabel" placeholder="2025 Season"></div>
+        <div class="field"><label>Season window</label><input type="text" id="setWindow" placeholder="May 1 – Sept 30"></div>
+        <div class="field"><label>Credits required for bond refund</label><input type="number" id="setBond" min="1" placeholder="10"></div>
+        <div class="field"><label>Bond note (shown to volunteers)</label><input type="text" id="setNote" placeholder="Earn 10 approved credits for your bond refund"></div>
+        <button class="btn primary" id="saveSettings">Save settings</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">Seasons</div>
+      <div id="seasonList" style="padding:4px 0"></div>
+      <div style="padding:14px;border-top:1px solid var(--line-soft)">
+        <div class="field"><label>Add a new season</label>
+          <div class="inline" style="margin-bottom:8px"><input type="number" id="nsYear" placeholder="Year (2026)" style="flex:0 0 110px"><input type="text" id="nsName" placeholder="Season name"></div>
+          <input type="text" id="nsFile" placeholder="Google Sheet File ID for the new season">
+        </div>
+        <button class="btn primary" id="addSeasonBtn">Add season</button>
+        <p class="sub" style="margin-top:8px">Create a fresh blank Google Sheet for each season, paste its File ID here. Tabs are built automatically. Families do <b>not</b> carry over — re-add returning families in the new season file (or copy the Families tab).</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   CONFIG
+   ============================================================ */
+const API = 'YOUR_APPS_SCRIPT_URL_HERE';
+const PW  = 'BMXcoord2025';   // ← change this to your coordinator password
+
+/* Default role templates per event type (all editable before saving) */
+const ROLE_TEMPLATES = {
+  'Practice night':        [['Gate starter',1],['Track marshal',1],['Registration',1],['Canteen',1]],
+  'Club race':             [['Gate starter',2],['Scorer',2],['Registration',2],['Canteen',2],['Track marshal',2]],
+  'Provincial / Sask Cup': [['Gate crew',3],['Registration',3],['Canteen',3],['Marshal',3],['Setup / teardown',3]],
+  'Track maintenance':     [['General maintenance',2]],
+  'Fundraiser':            [['Helper',2]],
+  'Social event':          [['Helper',1]]
+};
+
+let SETTINGS={bondCredits:10}, FAMILIES=[], EVENTS=[], LOG=[], SEASONS={seasons:[],active:''};
+
+/* ---- API ---- */
+async function apiGet(action, params={}){
+  const u=new URL(API); u.searchParams.set('action',action);
+  Object.keys(params).forEach(k=>u.searchParams.set(k,params[k]));
+  const r=await fetch(u.toString(),{method:'GET'}); const j=await r.json();
+  if(!j.ok) throw new Error(j.error||'Request failed'); return j.data;
+}
+async function apiPost(action, payload={}){
+  const r=await fetch(API,{method:'POST',body:JSON.stringify(Object.assign({action},payload)),
+    headers:{'Content-Type':'text/plain;charset=utf-8'},redirect:'follow'});
+  const j=await r.json(); if(!j.ok) throw new Error(j.error||'Request failed'); return j.data;
+}
+const $=id=>document.getElementById(id);
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function toast(m,k){const t=$('toast');t.textContent=m;t.className='toast show '+(k||'');setTimeout(()=>t.className='toast',2600);}
+
+/* ---- Login ---- */
+function drawLogos(){
+  const img='<img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4NCjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+DQo8IS0tIENyZWF0b3I6IENvcmVsRFJBVyAyMDIxICg2NC1CaXQpIC0tPg0KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbDpzcGFjZT0icHJlc2VydmUiIHdpZHRoPSI3LjAwNDcyaW4iIGhlaWdodD0iNC4wNzkyNGluIiB2ZXJzaW9uPSIxLjEiIHN0eWxlPSJzaGFwZS1yZW5kZXJpbmc6Z2VvbWV0cmljUHJlY2lzaW9uOyB0ZXh0LXJlbmRlcmluZzpnZW9tZXRyaWNQcmVjaXNpb247IGltYWdlLXJlbmRlcmluZzpvcHRpbWl6ZVF1YWxpdHk7IGZpbGwtcnVsZTpldmVub2RkOyBjbGlwLXJ1bGU6ZXZlbm9kZCINCnZpZXdCb3g9IjAgMCA3MDUyLjIyIDQxMDYuOSINCiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayINCiB4bWxuczp4b2RtPSJodHRwOi8vd3d3LmNvcmVsLmNvbS9jb3JlbGRyYXcvb2RtLzIwMDMiPg0KIDxkZWZzPg0KICA8c3R5bGUgdHlwZT0idGV4dC9jc3MiPg0KICAgPCFbQ0RBVEFbDQogICAgLnN0cjAge3N0cm9rZTojRkYxNjE2O3N0cm9rZS13aWR0aDozLjAyO3N0cm9rZS1taXRlcmxpbWl0OjIuNjEzMTN9DQogICAgLmZpbDIge2ZpbGw6YmxhY2t9DQogICAgLmZpbDQge2ZpbGw6I0ZGMTYxNn0NCiAgICAuZmlsMSB7ZmlsbDojMzkzNTM2O2ZpbGwtcnVsZTpub256ZXJvfQ0KICAgIC5maWwzIHtmaWxsOndoaXRlO2ZpbGwtcnVsZTpub256ZXJvfQ0KICAgIC5maWwwIHtmaWxsOndoaXRlO2ZpbGwtcnVsZTpub256ZXJvfQ0KICAgXV0+DQogIDwvc3R5bGU+DQogPC9kZWZzPg0KIDxnIGlkPSJMYXllcl94MDAyMF8xIj4NCiAgPG1ldGFkYXRhIGlkPSJDb3JlbENvcnBJRF8wQ29yZWwtTGF5ZXIiLz4NCiAgPGcgaWQ9IlJlZ2luYV94MDAyY19feDAwMjBfU0suIj4NCiAgIDxwYXRoIGNsYXNzPSJmaWwwIiBkPSJNMjAwMyAyNjI5LjkxYzAsMTYuNjEgLTQuMiwzMC45NiAtMTIuNTgsNDMuMDQgLTguMzksMTIuMDggLTIwLjE0LDIwLjg5IC0zNS4yNCwyNi40M2wyNi42OCA1Ny44OSAtMzguMjYgMCAtMTkuODkgLTUyLjFjLTEuMzQsMC4xNyAtMy40NCwwLjI1IC02LjI5LDAuMjVsLTQwLjAyIDAgLTEwLjMyIDUxLjg1IC0zMy43MyAwIDM1LjI0IC0xNzYuMTkgNzMuNDkgMGMxOS42MywwIDM0LjY5LDQuMjQgNDUuMTgsMTIuNzEgMTAuNDksOC40NyAxNS43MywyMC41MSAxNS43MywzNi4xMnptLTgwLjA0IDQ1LjgxYzE0LjkzLDAgMjYuNTEsLTMuNDQgMzQuNzMsLTEwLjMyIDguMjIsLTYuODggMTIuMzMsLTE2LjcgMTIuMzMsLTI5LjQ1IDAsLTguMzkgLTIuODksLTE0LjczIC04LjY4LC0xOSAtNS43OSwtNC4yOCAtMTQuMTMsLTYuNDIgLTI1LjA0LC02LjQybC00MC4wMiAwIC0xMy4wOSA2NS4xOSAzOS43NyAweiIvPg0KICAgPHBvbHlnb24gY2xhc3M9ImZpbDAiIHBvaW50cz0iMjI3My40NiwyNjEwLjUyIDIxNzcuODEsMjYxMC41MiAyMTY5LDI2NTQuMDcgMjI1NC44MywyNjU0LjA3IDIyNDkuMDQsMjY4My41MSAyMTYzLjIyLDI2ODMuNTEgMjE1NC40LDI3MjcuODEgMjI1Mi41NiwyNzI3LjgxIDIyNDcuMDMsMjc1Ny4yNiAyMTE0Ljg5LDI3NTcuMjYgMjE1MC4xMywyNTgxLjA4IDIyNzguOTksMjU4MS4wOCAiLz4NCiAgIDxwYXRoIGNsYXNzPSJmaWwwIiBkPSJNMjUyMi4yNyAyNjY5LjY3bDI5LjIgMCAtMTMuMDkgNjYuOTVjLTEwLjI0LDcuMDUgLTIxLjMxLDEyLjY3IC0zMy4yMiwxNi44NiAtMTEuOTEsNC4yIC0yMy43NSw2LjI5IC0zNS40OSw2LjI5IC0xNi4xMSwwIC0zMC42MiwtMy42NSAtNDMuNTQsLTEwLjk1IC0xMi45MiwtNy4zIC0yMi45OSwtMTcuMjQgLTMwLjIsLTI5LjgzIC03LjIyLC0xMi41OCAtMTAuODIsLTI2LjY4IC0xMC44MiwtNDIuMjggMCwtMTcuOTYgNC43LC0zNC40IDE0LjA5LC00OS4zMyA5LjQsLTE0Ljk0IDIyLjExLC0yNi43NiAzOC4xMywtMzUuNDkgMTYuMDMsLTguNzIgMzMuNTIsLTEzLjA5IDUyLjQ4LC0xMy4wOSAxMi41OCwwIDI0Ljc5LDIuMjcgMzYuNjIsNi44IDExLjgzLDQuNTMgMjEuNzcsMTAuNzQgMjkuODMsMTguNjNsLTIxLjY1IDI0LjkyYy02LjA0LC02LjIxIC0xMy4yNSwtMTEuMTEgLTIxLjY1LC0xNC43MiAtOC4zOSwtMy42MSAtMTcuMDMsLTUuNDEgLTI1LjkyLC01LjQxIC0xMi4wOCwwIC0yMy4yOCwyLjk0IC0zMy42LDguODEgLTEwLjMyLDUuODcgLTE4LjU0LDEzLjggLTI0LjY3LDIzLjc5IC02LjEyLDkuOTggLTkuMTgsMjAuOTMgLTkuMTgsMzIuODQgMCwxMC4yNCAyLjM5LDE5LjU1IDcuMTcsMjcuOTQgNC43OCw4LjM5IDExLjM3LDE0Ljk3IDE5Ljc2LDE5Ljc2IDguMzksNC43OCAxNy44Nyw3LjE3IDI4LjQ0LDcuMTcgNS44NywwIDEyLjA4LC0wLjk2IDE4LjYzLC0yLjg5IDYuNTQsLTEuOTMgMTIuOTIsLTQuNTcgMTkuMTMsLTcuOTNsOS41NiAtNDguODN6Ii8+DQogICA8cG9seWdvbiBjbGFzcz0iZmlsMCIgcG9pbnRzPSIyNzQwLjM3LDI1ODEuMDggMjcwNS4xMywyNzU3LjI2IDI2NzEuNDEsMjc1Ny4yNiAyNzA2LjY0LDI1ODEuMDggIi8+DQogICA8cG9seWdvbiBjbGFzcz0iZmlsMCIgcG9pbnRzPSIzMDA2LjA0LDI1ODEuMDggMzAzOC41MSwyNTgxLjA4IDMwMDMuMjcsMjc1Ny4yNiAyOTcxLjMxLDI3NTcuMjYgMjkwNS4zNiwyNjM1Ljk1IDI4ODAuOTUsMjc1Ny4yNiAyODQ3Ljk4LDI3NTcuMjYgMjg4My4yMSwyNTgxLjA4IDI5MTUuMTgsMjU4MS4wOCAyOTgxLjM3LDI3MDIuOSAiLz4NCiAgIDxwYXRoIGNsYXNzPSJmaWwwIiBkPSJNMzI3Ni40OSAyNzU3LjI2bC05LjMxIC0zNy4yNSAtODYuMzMgMCAtMjEuNjUgMzcuMjUgLTM0LjczIDAgMTA2LjIyIC0xNzYuMTkgMzQuNzMgMCA0Ny4zMiAxNzYuMTkgLTM2LjI0IDB6bS03OC43OCAtNjYuMmw2Mi40MiAwIC0xOC42MyAtNzUuMDEgLTQzLjc5IDc1LjAxeiIvPg0KICAgPHBhdGggY2xhc3M9ImZpbDAiIGQ9Ik0zNDQ0LjYxIDI3MTUuMDdjNS40NCwwIDEwLDEuNzIgMTMuNjUsNS4xOCAzLjY2LDMuNDYgNS40OSw4LjIyIDUuNDksMTQuMjkgMCwzLjU2IC0wLjYzLDYuOSAtMS44OCwxMC4wNCAtMS4yNiwzLjE0IC0zLjAzLDYuNDkgLTUuMzQsMTAuMDVsLTIyLjkyIDM3Ljk4IC0yMC43MiAwIDE2LjY0IC0zNy4zNmMtNS4yMywtMy41NiAtNy44NSwtOC44OSAtNy44NSwtMTYuMDEgMCwtNi45MSAyLjIsLTEyLjY2IDYuNTksLTE3LjI3IDQuNCwtNC42MSA5Ljg0LC02LjkgMTYuMzIsLTYuOXoiLz4NCiAgIDxwYXRoIGNsYXNzPSJmaWwwIiBkPSJNMzg0NC42MyAyNTc5LjQ2YzExLjU4LDAgMjIuNzQsMS42OCAzMy40OCw1LjAzIDEwLjc0LDMuMzYgMjAuMjIsNy45NyAyOC40NCwxMy44NWwtMTYuMzYgMjkuMmMtOC4zOSwtNS41NCAtMTcuMiwtOS43NyAtMjYuNDMsLTEyLjcxIC05LjIzLC0yLjk0IC0xNy40NSwtNC40IC0yNC42NywtNC40IC04LjM5LDAgLTE1LjE1LDEuNjQgLTIwLjI2LDQuOTEgLTUuMTIsMy4yNyAtNy42Nyw3Ljg0IC03LjY3LDEzLjcyIDAsNC41MyAxLjUxLDguMyA0LjUzLDExLjMyIDMuMDIsMy4wMiA2Ljc1LDUuNDUgMTEuMiw3LjMgNC40NSwxLjg1IDEwLjcsNC4wMyAxOC43NSw2LjU0IDEwLjc0LDMuMzYgMTkuNDcsNi42MyAyNi4xOCw5LjgxIDYuNzEsMy4xOSAxMi40Niw3Ljc2IDE3LjI0LDEzLjcyIDQuNzgsNS45NiA3LjE3LDEzLjcyIDcuMTcsMjMuMjggMCwxMi4yNSAtMy4xOSwyMi44NiAtOS41NiwzMS44NCAtNi4zOCw4Ljk4IC0xNS4xLDE1Ljg1IC0yNi4xOCwyMC42NCAtMTEuMDcsNC43OCAtMjMuNDksNy4xNyAtMzcuMjUsNy4xNyAtMTMuNTksMCAtMjYuNjgsLTIuNTYgLTM5LjI2LC03LjY4IC0xMi41OCwtNS4xMiAtMjMuMzMsLTEyLjA0IC0zMi4yMiwtMjAuNzdsMTYuODcgLTI4LjY5YzguMDUsOC4yMiAxNy4zNywxNC42OCAyNy45NCwxOS4zOCAxMC41Nyw0LjcgMjAuNjQsNy4wNSAzMC4yLDcuMDUgMTAuMDcsMCAxNy45NSwtMS45NyAyMy42NiwtNS45MSA1LjcsLTMuOTQgOC41NiwtOS40NCA4LjU2LC0xNi40OSAwLC00LjUzIC0xLjUxLC04LjI2IC00LjUzLC0xMS4yIC0zLjAyLC0yLjk0IC02Ljg0LC01LjM3IC0xMS40NiwtNy4zIC00LjYxLC0xLjkzIC0xMC44NiwtNC4wNyAtMTguNzUsLTYuNDIgLTEwLjc0LC0zLjE5IC0xOS41MSwtNi4zMyAtMjYuMywtOS40NCAtNi44LC0zLjEgLTEyLjU4LC03LjU5IC0xNy4zNywtMTMuNDYgLTQuNzgsLTUuODcgLTcuMTcsLTEzLjU5IC03LjE3LC0yMy4xNiAwLC0xMS4yNCAzLjAyLC0yMS4yMyA5LjA2LC0yOS45NSA2LjA0LC04LjcyIDE0LjQ3LC0xNS40MyAyNS4yOSwtMjAuMTQgMTAuODIsLTQuNyAyMy4xMiwtNy4wNSAzNi44NywtNy4wNXoiLz4NCiAgIDxwb2x5Z29uIGNsYXNzPSJmaWwwIiBwb2ludHM9IjQyMDIuODgsMjU4NC41IDQxMjAuMDcsMjY2MC43NiA0MTcwLjY2LDI3NjAuNjkgNDEzMS4xNSwyNzYwLjY5IDQwOTIuMTQsMjY4Ni42OSA0MDU1LjM5LDI3MjAuNjcgNDA0Ny4zMywyNzYwLjY5IDQwMTMuNjEsMjc2MC42OSA0MDQ4Ljg0LDI1ODQuNSA0MDgyLjU3LDI1ODQuNSA0MDY1LjIsMjY3MC44MyA0MTYwLjg1LDI1ODQuNSAiLz4NCiAgIDxwYXRoIGNsYXNzPSJmaWwwIiBkPSJNNDMwNS40OCAyNzE1Ljg5YzUuMjgsMCA5LjUzLDEuNjUgMTIuNzQsNC45NSAzLjIxLDMuMyA0LjgyLDcuNjkgNC44MiwxMy4xNiAwLDYuNDEgLTIuMDMsMTEuNzkgLTYuMDksMTYuMTMgLTQuMDYsNC4zNCAtOS4xLDYuNTEgLTE1LjE1LDYuNTEgLTUuMjgsMCAtOS41MywtMS43NSAtMTIuNzQsLTUuMjQgLTMuMjEsLTMuNDkgLTQuODEsLTcuOTcgLTQuODEsLTEzLjQ1IDAsLTYuNDEgMi4wMywtMTEuNyA2LjA4LC0xNS44NSA0LjA2LC00LjE1IDkuMSwtNi4yMyAxNS4xNSwtNi4yM3oiLz4NCiAgPC9nPg0KICA8ZyBpZD0iXzEzdGhfeDAwMjBfQVZFIj4NCiAgIDxwYXRoIGNsYXNzPSJmaWwwIiBkPSJNMzY2OS45OSAxNTIzLjg1bC05NC42NCA3NjEuNTEgLTE2Mi40OCAwIDE1LjAyIC0xMTQuNjkgLTg1LjE2IDAgLTM3LjM3IDExNC42OSAtMTYzLjQ2IDAgMjY0Ljc5IC03NjEuNTEgMjYzLjMgMHptLTE1OS4yMSAxNDMuMDdsLTE1LjM0IDAgLTEwOC4yNCAzNjUuMSA2MC4zNiAwIDYzLjIyIC0zNjUuMXoiLz4NCiAgIDxwb2x5Z29uIGNsYXNzPSJmaWwwIiBwb2ludHM9IjM5NTQuNSwyMjg1LjM2IDM3MjUuMTMsMjI4NS4zNiAzODAwLjE5LDE1MjMuODUgMzk2OS44NiwxNTIzLjg1IDM4OTguNjQsMjAyOC41OSA0MDY3LjQxLDE1MjMuODUgNDIzNy4wNywxNTIzLjg1ICIvPg0KICAgPHBvbHlnb24gY2xhc3M9ImZpbDAiIHBvaW50cz0iNDEzNy45MywyMjg1LjM2IDQzMTYuNzUsMTUyMy44NSA0NjUzLjE0LDE1MjMuODUgNDYxOC40NywxNjcxLjQ5IDQ0NTMuMjEsMTY3MS40OSA0NDE4LjI4LDE4MjAuMjYgNDU3Ni44NCwxODIwLjI2IDQ1NDMuMjksMTk2My4xNyA0Mzg0LjcyLDE5NjMuMTcgNDM0My45NiwyMTM2Ljc1IDQ1MjAuMzEsMjEzNi43NSA0NDg1LjQxLDIyODUuMzYgIi8+DQogICA8cGF0aCBjbGFzcz0iZmlsMCIgZD0iTTE0NzAuNTIgMTUyNC4wNGwxMzUuMjQgMCAtMTc1LjgxIDc2MS41MSAtMTc4LjMxIDAgMTI4LjAyIC01NTQuNWMtNC4yMSwxLjk2IC05Ljk1LDQuMjQgLTE3LjE1LDcuMTggLTcuMTcsMi43NyAtMjAuNDcsNi42OSAtMzkuOTksMTEuNDIgLTE5LjM3LDQuNzMgLTM3LjA2LDcuMTggLTUyLjg4LDcuMThsMzAuMTMgLTEzMC41MWM4LjgxLDAgMjEuNjEsLTIuNDUgMzguMzYsLTcuMTggMTYuNzUsLTQuNzMgMzQuNCwtMTEuMjYgNTMuMywtMTkuNTggMTguNzIsLTguMzIgMzUuNzIsLTE5LjA5IDUxLjA1LC0zMi40NiAxNS4xNiwtMTMuMzggMjQuNTEsLTI3LjczIDI4LjA1LC00My4wN3oiLz4NCiAgIDxwYXRoIGlkPSJfMSIgY2xhc3M9ImZpbDAiIGQ9Ik0xNzI1LjM2IDIyOTQuMzZjLTM1LjI0LDAgLTY1LjMzLC0zLjkxIC05MC4yOCwtMTEuNzQgLTI0Ljc5LC03LjgzIC00My45OCwtMjAuMDYgLTU3LjkyLC0zNi43IC0xMy43NCwtMTYuOCAtMjIuMjIsLTM4LjAxIC0yNS4wNCwtNjMuOTUgLTMuMDIsLTI1Ljc4IC0wLjMxLC01Ni42MSA4LjAxLC05Mi42NmwxNi45OCAtNzMuNTcgMTcyLjQzIDAgLTE3LjEgNzQuMDZjLTEuNjIsNy4wMiAtMi43MiwxMy44NyAtMy4yNCwyMC4zOSAtMC41Myw2LjUyIDAuMjcsMTIuMjQgMi41NywxNy4xMyAyLjEzLDQuOSA2LjEyLDguODEgMTEuODEsMTEuNzUgNS43MiwyLjc3IDE0LjAzLDQuMjQgMjQuOCw0LjI0IDcuOTksMCAxNC45MSwtMC45OCAyMC43OCwtMy4xIDUuODcsLTIuMTIgMTEuMzgsLTYuMiAxNi4yLC0xMi4yNCA0Ljk4LC02LjA0IDkuMzksLTE0LjUyIDEzLjYyLC0yNS43OCA0LjIsLTExLjA5IDguNDQsLTI1Ljk0IDEyLjcsLTQ0LjM3IDMuMzEsLTE0LjM1IDUuMjEsLTI4LjIyIDUuOTcsLTQxLjQ0IDAuNjEsLTEzLjIxIC0wLjYzLC0yNC44IC0zLjc2LC0zNC41OCAtMy4wOSwtOS45NSAtOC42MywtMTcuNzggLTE2LjU2LC0yMy42NiAtNy43OCwtNS44NyAtMTguNjgsLTguODEgLTMyLjM5LC04LjgxIC0zLjQyLDAgLTYuNTIsMCAtOS4zNCwwLjE2IC0yLjgxLDAuMTYgLTUuMTMsMC4zMyAtNywwLjY1bDMzLjg2IC0xNDYuNjZjMjguMjIsMCA1MS42NCwtNi4wNCA3MC4wOSwtMTguMTEgMTguNDksLTEyLjI0IDMwLjk4LC0zMy4xMiAzNy45LC02My4xMyA4LjQ3LC0zNi43MSAtMS4wMSwtNTQuOTggLTI4LjI2LC01NC45OCAtMTEuOTEsMCAtMjEuMjksMS43OSAtMjguMjgsNS4yMiAtNy4wMywzLjU5IC0xMi40NSw3Ljk5IC0xNi40NywxMy4zOCAtNC4wMSw1LjM4IC02LjkxLDExLjU4IC04Ljc4LDE4LjI3IC0xLjg3LDYuNjkgLTMuNTgsMTMuMzggLTUuMTMsMjAuMDdsLTUuNzIgMjQuOCAtMTczLjkgMCA1LjY1IC0yOC43MWM4LjExLC0zNi41NCAxOS45MSwtNjcuODcgMzUuNDgsLTkzLjY0IDE1LjQxLC0yNS43OCAzNC40NywtNDYuODIgNTYuODMsLTYzLjEzIDIyLjMyLC0xNi4xNSA0OC4yNCwtMjguMDYgNzcuMzQsLTM1LjQgMjkuMSwtNy4zNCA2MS4yNSwtMTAuOTMgOTYuNjUsLTEwLjkzIDM0LjEsMCA2My41LDQuMDggODguMzcsMTIuMjQgMjQuODcsOC4xNiA0NC41MiwyMC41NiA1OS4xMSwzNy4yIDE0LjM5LDE2LjggMjMuNTYsMzcuODUgMjcuMTUsNjMuMyAzLjcxLDI1LjYxIDEuNTEsNTUuNjMgLTYuNTEsOTAuMzggLTQuMDcsMTcuNjIgLTguOTMsMzQuNDIgLTE0Ljc0LDUwLjQxIC01Ljg1LDE2LjE1IC0xMy4xNiwzMC44MyAtMjEuOTUsNDQuMjEgLTguOCwxMy4zOCAtMTkuNTQsMjUuMjggLTMyLjA3LDM1LjczIC0xMi42NCwxMC4yNyAtMjcuODcsMTguMjcgLTQ1LjcsMjQuMTQgMTguODcsMTAuMTIgMzIuNDMsMjIuMDIgNDAuNDEsMzUuNTYgOC4xMywxMy41NCAxMi42OSwyOC4zOSAxMy42Niw0NC43IDEsMTYuMTUgLTAuMzgsMzMuNDUgLTQuMjQsNTEuNTUgLTMuODksMTguMjcgLTguMDYsMzcuMDMgLTEyLjU0LDU2LjQ0IC04LjQsMzYuMzggLTE5Ljk3LDY4Ljg1IC0zNC43Niw5Ny41NSAtMTQuNzUsMjguNTUgLTMzLjQxLDUyLjg2IC01Ni4yNCw3Mi42IC0yMi42NywxOS43NCAtNDkuNjYsMzQuOTEgLTgxLjExLDQ1LjM1IC0zMS40OSwxMC42IC02Ny45MywxNS44MiAtMTA5LjM3LDE1LjgyeiIvPg0KICAgPHBvbHlnb24gaWQ9Il8yIiBjbGFzcz0iZmlsMCIgcG9pbnRzPSIyMTg1Ljk3LDE1MjQuMDQgMjU1NCwxNTI0LjA0IDI1MjAuMTEsMTY3MC44NiAyNDIwLjExLDE2NzAuODYgMjI3OC4xOSwyMjg1LjU1IDIxMTAsMjI4NS41NSAyMjUxLjkxLDE2NzAuODYgMjE1Mi4wNywxNjcwLjg2ICIvPg0KICAgPHBvbHlnb24gaWQ9Il8zIiBjbGFzcz0iZmlsMCIgcG9pbnRzPSIyNjkxLjc5LDE5NDAuMDMgMjYxMi4wMiwyMjg1LjU1IDI0NDQuOCwyMjg1LjU1IDI2MjAuNjEsMTUyNC4wNCAyNzg3LjgzLDE1MjQuMDQgMjcyNS4wNCwxNzk1Ljk5IDI4MDQuNDksMTc5NS45OSAyODY3LjI4LDE1MjQuMDQgMzAzNC40OSwxNTI0LjA0IDI4NTguNjgsMjI4NS41NSAyNjkxLjQ3LDIyODUuNTUgMjc3MS4yNCwxOTQwLjAzICIvPg0KICA8L2c+DQogIDxwYXRoIGlkPSJJbm5lcl94MDAyMF9DdXJ2ZSIgY2xhc3M9ImZpbDEiIGQ9Ik0yNjE5LjA0IDk4Mi40N2wyNzcuNDQgMGMtMjMwLjA5LC0xNzcuODQgLTUxOC41MSwtMjgzLjY4IC04MzEuOCwtMjgzLjY4IC03NTEuNzgsMCAtMTM2MS4yOSw2MDkuNTEgLTEzNjEuMjksMTM2MS4yOSAwLDc1MS44NiA2MDkuNTEsMTM2MS4zNyAxMzYxLjI5LDEzNjEuMzcgMzEzLjI5LDAgNjAxLjcxLC0xMDUuODQgODMxLjgsLTI4My42N2wtNzg3LjM0IDAgMzQ4LjMyIDY4Ljg4Yy0xMjMuMTMsNDIuMjMgLTI1NS4yNSw2NS4wOSAtMzkyLjc4LDY1LjA5IC02NjkuMTgsMCAtMTIxMS42NiwtNTQyLjQ4IC0xMjExLjY2LC0xMjExLjY2IDAsLTY2OS4xIDU0Mi40OCwtMTIxMS41OSAxMjExLjY2LC0xMjExLjU5IDEzNy41MywwIDI2OS42NSwyMi44NiAzOTIuNzgsNjUuMWwtMzQ4LjMyIDY4Ljg4IDUwOS45IDB6Ii8+DQogIDxyZWN0IGNsYXNzPSJmaWwyIiB0cmFuc2Zvcm09Im1hdHJpeCgxLjE3Mjc2IC0wIC0wLjIyMDg0NCAxLjMxMzk4IDQ4MTEuOTUgMTQ2MC40OSkiIHdpZHRoPSIxODI3LjcyIiBoZWlnaHQ9IjEwMzkuNzIiIHJ4PSIxNS40NCIgcnk9IjE1LjQ0Ii8+DQogIDxwb2x5Z29uIGlkPSJMaW5lIiBjbGFzcz0iZmlsMyIgcG9pbnRzPSIxODI4LjIxLDI0ODYuNDggNDQyNS45OCwyNDg2LjQ4IDQ0MjUuOTgsMjUwNy40NSAxODI4LjIxLDI1MDcuNDUgIi8+DQogIDxnIGlkPSJCTVgiPg0KICAgPHBhdGggY2xhc3M9ImZpbDAiIGQ9Ik01MDA5LjY3IDI0NzMuNGwxMzguMTQgLTU5OC4zNCAxNzkuMDYgMGM0Ni45MSwwIDc5LjEyLDEwLjM4IDk2LjkyLDMxLjAyIDE3Ljc5LDIwLjY0IDIwLjk0LDU1Ljg4IDkuNDIsMTA1Ljc1IC0wLjMzLDEuNDEgLTAuODMsMy41OSAtMS40NSw2LjI4IC0yLjA1LDguODUgLTMuNTUsMTUuMzggLTQuNTMsMTkuNjEgLTAuOTgsNC4yMyAtMy4wMiwxMC45IC02LDE5Ljg3IC0yLjk3LDguOTcgLTUuNzgsMTYuMTUgLTguNjMsMjEuMjggLTIuODUsNS4xMyAtNi43NCwxMS40MSAtMTEuNjksMTguOTcgLTUuMDUsNy40MyAtMTAuNDQsMTMuNTggLTE2LjI4LDE4LjMzIC01Ljg0LDQuNzQgLTEyLjk2LDkuNDkgLTIxLjMsMTMuOTcgLTguMjEsNC40OSAtMTcuNDQsNy44MiAtMjcuNDYsMTAuMTMgMTMuMSwzLjIgMjMuNDcsOC44NCAzMS40NywxNi45MiA3LjkxLDcuOTUgMTMuMjYsMTYuNDEgMTYuMjIsMjUuMjUgMy4wNiw4Ljk3IDQuMzksMTkuODcgNC4zMSwzMi45NCAtMC4xNywxMi45NSAtMS4wMSwyMy44NCAtMi41NCwzMi42OCAtMS41LDguNzIgLTMuNjcsMTkuMjIgLTYuNTEsMzEuNTMgLTcuMjgsMzEuNTMgLTE1LjcsNTguNTggLTI1LjI3LDgxLjE0IC05LjU2LDIyLjU2IC0yMS43NCw0Mi41NSAtMzYuNTksNjAuMjQgLTE0Ljg1LDE3LjY5IC0zMi44NiwzMC43NiAtNTMuOTgsMzkuNDggLTIxLjIxLDguNTkgLTQ1LjkzLDEyLjk1IC03NC4yNiwxMi45NWwtMTc5LjA2IDB6bTE5My44MSAtMjc5LjgxbC00MC4wNyAxNzMuNTVjNS45MSwwLjUxIDEwLjIsMC43NyAxMi44OSwwLjc3IDM0LjM1LDAgNTQuOTMsLTE0Ljc0IDYxLjc3LC00NC4zNSAwLDAgNS43NCwtMjQuODcgMTcuMjUsLTc0LjczIDQuMzgsLTE4Ljk3IDQuNCwtMzIuOTQgMC4wNiwtNDEuOTIgLTQuMzcsLTguODQgLTEzLjQ2LC0xMy4zMyAtMjcuNTYsLTEzLjMzbC0yNC4zNSAwem0yMS40OCAtOTMuMDZsMjcuMDQgMGM2LjQxLDAgMTIuMTIsLTEuNDEgMTYuODQsLTQuMSA0Ljc1LC0yLjgyIDguNjIsLTYuNzkgMTEuNTksLTExLjkyIDIuOTgsLTUuMTMgNS4wNywtOS43NCA2LjUzLC0xMy44NSAxLjQ2LC00LjEgMi44NywtOS4xIDQuMiwtMTQuODdsMTMuNyAtNTkuMzVjNC4zOCwtMTguOTcgLTIuNzgsLTI4LjQ2IC0yMS42MywtMjguNDZsLTI3LjY5IDAgLTMwLjYgMTMyLjU0eiIvPg0KICAgPHBvbHlnb24gY2xhc3M9ImZpbDAiIHBvaW50cz0iNTcxMS44OCwyNDczLjQgNTU5My4zMiwyNDczLjQgNTYxOS45OSwyMDQxLjk1IDU1MjAuMzgsMjQ3My40IDUzOTMuNDksMjQ3My40IDU1MzEuNjIsMTg3NS4wNyA1NzMyLjg2LDE4NzUuMDcgNTcxNi40NywyMTg3LjA1IDU4NDMuNzQsMTg3NS4wNyA2MDQ2Ljc3LDE4NzUuMDcgNTkwOC42NCwyNDczLjQgNTc4MC4yLDI0NzMuNCA1ODc5LjgxLDIwNDEuOTUgIi8+DQogICA8cG9seWdvbiBjbGFzcz0iZmlsMCIgcG9pbnRzPSI2MTgwLjY4LDIyMzkuNDggNjA4My45OSwyNDczLjQgNTk0OS45MiwyNDczLjQgNjA5NC4xNiwyMTU1LjY1IDYxMDIuNjYsMTg3NS4wNyA2MjMxLjg3LDE4NzUuMDcgNjIxOC43OSwyMDc5LjM4IDYyOTYuNDcsMTg3NS4wNyA2NDI1LjkzLDE4NzUuMDcgNjMwNC44OCwyMTU1LjY1IDYzMDIuMTUsMjQ3My40IDYxNjguNDYsMjQ3My40ICIvPg0KICA8L2c+DQogIDxwYXRoIGlkPSJPdXRlcl94MDAyMF9DdXJ2ZSIgY2xhc3M9ImZpbDQgc3RyMCIgZD0iTTcwNTIuMTQgOTczLjhjLTEyMDcuMzQsLTYwLjA1IC0yNDE0LjY4LC0xMjAuMDkgLTM2MjIuMDIsLTE4MC4xNCAyOC4xNCwtNzIuODggNTYuMjgsLTE0NS43NSA4NC40MSwtMjE4LjYzIDQxOC40NSwtNTguOTkgODM2Ljg5LC0xMTcuOTggMTI1NS4zNCwtMTc2Ljk3IC01MjYuMjgsLTI3LjM4IC0xMDUyLjU1LC01NC43NSAtMTU3OC44MywtODIuMTMgLTY1LjAxLDQzLjU3IC0xMzAuMDMsODcuMTMgLTE5NS4wNCwxMzAuNyAtODEuNCwtNDYuMDcgLTE2My44MiwtODUuNDcgLTI0Ny4yMiwtMTE4LjUxIC0yLjY2LC0zMS41OSAtNS4zMiwtNjMuMTkgLTcuOTgsLTk0Ljc4IDE0OS41OSwtMC40NCAyOTkuMTgsLTAuODggNDQ4Ljc3LC0xLjMyIC00NDEuNDgsLTEzOS42NiAtNzY2LjQ0LC0yMzEuNDQgLTg2NC4xNiwtMjI5Ljg3IC0zOS41NSw2Ny41MSAtNzkuMSwxMzUuMDMgLTExOC42NiwyMDIuNTQgLTkxLjg2LC02Ljg1IC0xODMuMTksLTcuNCAtMjczLjksLTAuNDIgLTM5LjU3LC02Ny41NSAtNzkuMTQsLTEzNS4xIC0xMTguNzEsLTIwMi42NSAtMTQ3LjU2LDE5Ljk5IC0yODEuOTEsNTEuMSAtNDA0LjMsOTIuMjkgLTYuNDYsNzcuOTIgLTEyLjkzLDE1NS44MyAtMTkuMzksMjMzLjc1IC05Ni42OSwzOS4xNiAtMTc1Ljk1LDc5LjA4IC0yNDYuMTMsMTE5LjM5IC02NS4xMSwtNDMuNDUgLTEzMC4yMSwtODYuOTEgLTE5NS4zMiwtMTMwLjM3IC0xMjcuODUsODQuMzQgLTIzNC40OCwxNzAuNiAtMzIzLjc2LDI1OC40MyAyNy45Miw3Mi45IDU1LjgzLDE0NS43OSA4My43NSwyMTguNjkgLTY1LjMyLDcwLjcgLTEyMS45OCwxNDEuOTggLTE3MC4wMiwyMTMuODMgLTc3LjcxLC0xMC44OCAtMTU1LjQyLC0yMS43NiAtMjMzLjEzLC0zMi42NSAtNzkuMzUsMTI2Ljc4IC0xMzYuNzQsMjUwLjQyIC0xNzkuMjYsMzcxLjkzIDU2LjgxLDUzLjkgMTEzLjYyLDEwNy43OSAxNzAuNDQsMTYxLjY5IC0yNi45NCw4OS41NiAtNDcuMjMsMTc4LjQ3IC02MC43OCwyNjYuNjkgLTc0LjQ5LDIzLjggLTE0OC45OSw0Ny42MSAtMjIzLjQ4LDcxLjQxIC0xNC40MiwxNDMuOTQgLTE1LjYyLDI4Mi41NyAwLjIxLDQxNC40MSA3NC40MSwyMy43OSAxNDguODEsNDcuNTggMjIzLjIyLDcxLjM3IDEyLjI0LDg4Ljk0IDMxLjIzLDE3Ny44NyA2MC43LDI2Ni44MSAtNTYuODYsNTMuOTMgLTExMy43MiwxMDcuODcgLTE3MC41OCwxNjEuODEgNDkuMTksMTMzLjI0IDEwNy44LDI1OC4yOSAxNzkuODUsMzcxLjcgNzcuMzQsLTEwLjg4IDE1NC42OCwtMjEuNzYgMjMyLjAyLC0zMi42NCA1My4zNSw3Ny40NSAxMDkuNTMsMTQ5Ljk3IDE3MC45NSwyMTMuMzEgLTI3LjksNzMuMDQgLTU1Ljc5LDE0Ni4wOSAtODMuNjksMjE5LjEzIDEwMy41NSwxMDMuMjggMjExLjg3LDE4Ny41MiAzMjMuNDksMjU4LjU0IDY1LjI5LC00My4zOCAxMzAuNTksLTg2Ljc2IDE5NS44OCwtMTMwLjE0IDc5LjMyLDQ1LjQzIDE2MC45Myw4NS44MSAyNDYuMDIsMTE4LjU1IDYuNjIsNzguMTEgMTMuMjQsMTU2LjIxIDE5Ljg2LDIzNC4zMiAxMzIuOTEsNDcuNjcgMjY3LjY4LDc1Ljc0IDQwMy42Myw5MS40IDM5LjcsLTY3LjQzIDc5LjM5LC0xMzQuODUgMTE5LjA5LC0yMDIuMjggOTEuNyw3Ljg5IDE4Mi41Niw3LjQyIDI3Mi43MywwLjA3IDM5LjcxLDY3LjQgNzkuNDIsMTM0LjgxIDExOS4xMywyMDIuMjEgMTk0LjU2LC0xNS43NCA1MjguNzgsLTEyMi4yNiA4NjQuMTMsLTIyOS41MSAtMTQ5LjQ2LC0wLjU0IC0yOTguOTMsLTEuMDkgLTQ0OC4zOSwtMS42MyAyLjY1LC0zMS40NiA1LjMsLTYyLjkzIDcuOTUsLTk0LjQgODUuODIsLTMzLjI5IDE2OC4zMywtNzIuMTIgMjQ2LjE5LC0xMTguNjcgNjQuOTEsNDMuMzQgMTI5LjgyLDg2LjY3IDE5NC43MiwxMzAuMDEgNTI2LjYxLC0yNy4xMyAxMDUzLjIxLC01NC4yNiAxNTc5LjgyLC04MS4zOCAtNDE4LjMzLC01OC44NSAtODM2LjY1LC0xMTcuNjkgLTEyNTQuOTgsLTE3Ni41NCAtMjcuODgsLTczLjI4IC01NS43NiwtMTQ2LjU3IC04My42MywtMjE5Ljg1IDczOC4xNCwtNjAuMyAxNDc2LjI4LC0xMjAuNiAyMjE0LjQyLC0xODAuOSAtODQ0LjMsLTAgLTE2ODguNiwtMCAtMjUzMi45LC0wLjAxIC0xNzMuODIsMTk2LjMzIC02MzUuMDEsNDMxLjEgLTExMjcuMTEsNDE1LjE5IC00MTIuODIsLTEzLjM1IC04MzAuNTQsLTI0NC44NSAtMTEyOC40MSwtNjA4LjEzIC0zNzAuMzQsLTQ1MS42NyAtMzg0Ljc4LC0xMTc4LjkxIC00MC45MywtMTcxNS45OCAyNDcuOTksLTM4Ny4zNCA3NDQuMDcsLTY5OC43MSAxMzA2LjU1LC02NjUuMzYgMzE2LjM1LDE4Ljc2IDY0Ny42OSwxMDguNzIgOTg5LjU1LDQxNi45MiAxMzEzLjMxLC0wLjQxIDI2MjYuNjEsLTAuODMgMzkzOS45MiwtMS4yNHoiLz4NCiA8L2c+DQo8L3N2Zz4NCg==" alt="13th Ave BMX">';
+  $('loginLogo').innerHTML=img; $('logo').innerHTML=img;
+}
+function tryLogin(){
+  if($('pw').value===PW){ $('login').style.display='none'; $('app').style.display='block'; boot(); }
+  else { $('loginErr').textContent='Wrong password. Try again.'; }
+}
+
+/* ---- Tabs ---- */
+function showTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tab===name));
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
+  $('sec-'+name).classList.add('on');
+}
+
+/* ---- Boot / load ---- */
+async function boot(){
+  if(API==='YOUR_APPS_SCRIPT_URL_HERE'){ toast('Paste your Apps Script URL into admin.html','err'); return; }
+  try{ await reloadAll(); }
+  catch(err){ toast('Could not reach the tracker. '+err.message,'err'); }
+}
+async function reloadAll(){
+  const data = await apiGet('bootstrap');
+  SETTINGS=data.settings; FAMILIES=data.families; EVENTS=data.events;
+  LOG = await apiGet('getLog');
+  SEASONS = await apiGet('listSeasons');
+  renderAll();
+}
+function renderAll(){
+  $('seasonChip').textContent=SETTINGS.seasonLabel||SEASONS.active;
+  $('seasonSub').textContent=SETTINGS.seasonLabel||'Season';
+  renderDash(); renderApprovals(); renderFamilies(); renderEvents(); renderLogFilters(); renderLog(); renderSettings(); renderSeasons();
+}
+
+/* ---- Dashboard ---- */
+function renderDash(){
+  const need=SETTINGS.bondCredits;
+  const bondsMet=FAMILIES.filter(f=>f.approved>=need).length;
+  const pending=LOG.filter(l=>l.status==='pending').length;
+  const totalCred=FAMILIES.reduce((s,f)=>s+f.approved,0);
+  $('stFam').textContent=FAMILIES.length;
+  $('stBond').textContent=bondsMet;
+  $('stPend').textContent=pending;
+  $('stCred').textContent=totalCred;
+
+  if(!FAMILIES.length){ $('standings').innerHTML=emptyMsg('No families yet. Add them on the Families tab.'); return; }
+  const rows=[...FAMILIES].sort((a,b)=>b.approved-a.approved).map(f=>{
+    const pct=Math.min(100,Math.round((f.approved/need)*100));
+    const done=f.approved>=need;
+    return `<tr>
+      <td>${esc(f.surname)}</td>
+      <td class="num">${f.approved}<span style="color:var(--muted-soft);font-weight:400"> / ${need}</span></td>
+      <td>${f.pending?`<span class="tag pending">+${f.pending}</span>`:'<span style="color:var(--muted-soft)">—</span>'}</td>
+      <td><div class="miniBar ${done?'done':''}"><i style="width:${pct}%"></i></div></td>
+      <td>${done?'<span class="tag met">Met</span>':'<span class="tag short">'+(need-f.approved)+' to go</span>'}</td>
+    </tr>`;
+  }).join('');
+  $('standings').innerHTML=`<table><thead><tr><th>Family</th><th>Approved</th><th>Pending</th><th>Progress</th><th>Bond</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+/* ---- Approvals ---- */
+function renderApprovals(){
+  const pend=LOG.filter(l=>l.status==='pending');
+  $('apvPill').textContent=pend.length;
+  $('apvPill').style.display=pend.length?'flex':'none';
+  $('apvSub').textContent=pend.length?`${pend.length} waiting`:'';
+  if(!pend.length){ $('approvals').innerHTML=emptyMsg('All caught up — no shifts waiting for review.'); return; }
+  const rows=pend.map(l=>`<tr class="row-pending" data-id="${l.logId}">
+      <td><b>${esc(l.surname)}</b><div style="font-size:11.5px;color:var(--muted)">${esc(l.eventName)}${l.session?' · '+esc(l.session):''}</div></td>
+      <td>${esc(l.role)}</td>
+      <td class="num">${l.credits}</td>
+      <td style="white-space:nowrap">
+        <button class="btn sm green" data-act="approved" data-id="${l.logId}"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 6"/></svg></button>
+        <button class="btn sm red" data-act="rejected" data-id="${l.logId}"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+      </td>
+    </tr>`).join('');
+  $('approvals').innerHTML=`<table><thead><tr><th>Family / event</th><th>Role</th><th>Credits</th><th>Decision</th></tr></thead><tbody>${rows}</tbody></table>`;
+  $('approvals').querySelectorAll('button[data-act]').forEach(b=>{
+    b.addEventListener('click',()=>decide(b.dataset.id,b.dataset.act,b));
+  });
+}
+async function decide(logId,status,btn){
+  btn.disabled=true;
+  try{
+    await apiPost('updateEntryStatus',{logId,status});
+    const e=LOG.find(l=>String(l.logId)===String(logId)); if(e) e.status=status;
+    FAMILIES = await apiGet('getFamilies');
+    renderAll();
+    toast(status==='approved'?'Approved':'Rejected', status==='approved'?'ok':'');
+  }catch(err){ toast(err.message,'err'); btn.disabled=false; }
+}
+
+/* ---- Families ---- */
+function renderFamilies(){
+  const need=SETTINGS.bondCredits;
+  if(!FAMILIES.length){ $('famList').innerHTML=emptyMsg('No families registered yet.'); }
+  else{
+    const rows=FAMILIES.map(f=>{
+      const done=f.approved>=need;
+      return `<tr>
+        <td><b>${esc(f.surname)}</b></td>
+        <td class="num">${f.approved} / ${need}</td>
+        <td>${f.pending?`<span class="tag pending">+${f.pending} pending</span>`:'<span style="color:var(--muted-soft)">—</span>'}</td>
+        <td>${done?'<span class="tag met">Bond met</span>':'<span class="tag short">short</span>'}</td>
+        <td style="text-align:right"><button class="x" data-rm="${f.familyId}" title="Remove">&times;</button></td>
+      </tr>`;
+    }).join('');
+    $('famList').innerHTML=`<table><thead><tr><th>Family</th><th>Approved</th><th>Pending</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+    $('famList').querySelectorAll('button[data-rm]').forEach(b=>b.addEventListener('click',()=>removeFam(b.dataset.rm,b)));
+  }
+}
+async function addFam(){
+  const name=$('newFam').value.trim(); if(!name) return;
+  $('addFamBtn').disabled=true;
+  try{ FAMILIES=await apiPost('addFamily',{surname:name}); $('newFam').value=''; renderAll(); toast('Family added','ok'); }
+  catch(err){ toast(err.message,'err'); }
+  $('addFamBtn').disabled=false;
+}
+async function removeFam(id,btn){
+  const f=FAMILIES.find(x=>String(x.familyId)===String(id));
+  if(!confirm(`Remove the ${f?f.surname:''} family? Their logged shifts stay in the log.`)) return;
+  btn.disabled=true;
+  try{ FAMILIES=await apiPost('removeFamily',{familyId:id}); renderAll(); toast('Family removed'); }
+  catch(err){ toast(err.message,'err'); btn.disabled=false; }
+}
+
+/* ---- Events ---- */
+let ROLES_DRAFT=[];
+function renderRolesEdit(){
+  $('rolesEdit').innerHTML = ROLES_DRAFT.map((r,i)=>`
+    <div class="role-row">
+      <input type="text" value="${esc(r.role)}" data-i="${i}" data-k="role" placeholder="Role">
+      <input type="number" value="${r.credits}" data-i="${i}" data-k="credits" min="0" placeholder="Cr">
+      <button class="role-del" data-del="${i}">&times;</button>
+    </div>`).join('') || '<p class="sub">No roles yet — add at least one.</p>';
+  $('rolesEdit').querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input',()=>{ const i=+inp.dataset.i,k=inp.dataset.k; ROLES_DRAFT[i][k]= k==='credits'?(+inp.value||0):inp.value; });
+  });
+  $('rolesEdit').querySelectorAll('button[data-del]').forEach(b=>b.addEventListener('click',()=>{ ROLES_DRAFT.splice(+b.dataset.del,1); renderRolesEdit(); }));
+}
+function loadTemplate(){
+  const t=ROLE_TEMPLATES[$('evType').value]||[];
+  ROLES_DRAFT=t.map(([role,credits])=>({role,credits})); renderRolesEdit();
+}
+function renderEvents(){
+  if(!EVENTS.length){ $('evList').innerHTML=emptyMsg('No events yet. Add the season\u2019s events above.'); return; }
+  const rows=EVENTS.map(e=>{
+    const roleStr=e.roles.map(r=>`${esc(r.role)} (${r.credits})`).join(', ');
+    return `<tr>
+      <td><b>${esc(e.name)}</b><div style="font-size:11.5px;color:var(--muted)">${esc(e.type)}${e.date?' · '+e.date:''}${e.notes?' · '+esc(e.notes):''}</div>
+        <div style="font-size:11.5px;color:var(--muted-soft);margin-top:3px">${roleStr}</div></td>
+      <td style="text-align:right;vertical-align:top"><button class="x" data-rm="${e.eventId}" title="Remove">&times;</button></td>
+    </tr>`;
+  }).join('');
+  $('evList').innerHTML=`<table><tbody>${rows}</tbody></table>`;
+  $('evList').querySelectorAll('button[data-rm]').forEach(b=>b.addEventListener('click',()=>removeEv(b.dataset.rm,b)));
+}
+async function addEv(){
+  const name=$('evName').value.trim(); if(!name){ toast('Give the event a name','err'); return; }
+  if(!ROLES_DRAFT.length){ toast('Add at least one role','err'); return; }
+  $('addEvBtn').disabled=true;
+  try{
+    EVENTS=await apiPost('addEvent',{event:{name,type:$('evType').value,date:$('evDate').value,notes:$('evNotes').value,roles:ROLES_DRAFT}});
+    $('evName').value=''; $('evNotes').value=''; $('evDate').value=''; loadTemplate();
+    renderAll(); toast('Event added','ok');
+  }catch(err){ toast(err.message,'err'); }
+  $('addEvBtn').disabled=false;
+}
+async function removeEv(id,btn){
+  if(!confirm('Remove this event?')) return;
+  btn.disabled=true;
+  try{ EVENTS=await apiPost('removeEvent',{eventId:id}); renderAll(); toast('Event removed'); }
+  catch(err){ toast(err.message,'err'); btn.disabled=false; }
+}
+
+/* ---- Log ---- */
+function renderLogFilters(){
+  $('fltFam').innerHTML='<option value="">All families</option>'+FAMILIES.map(f=>`<option value="${esc(f.surname)}">${esc(f.surname)}</option>`).join('');
+}
+function renderLog(){
+  const ff=$('fltFam').value, fs=$('fltStatus').value;
+  let rows=LOG.filter(l=>(!ff||l.surname===ff)&&(!fs||l.status===fs));
+  if(!rows.length){ $('logList').innerHTML=emptyMsg('No log entries match.'); return; }
+  const body=rows.map(l=>`<tr>
+      <td style="white-space:nowrap;font-size:12px;color:var(--muted)">${fmtTs(l.timestamp)}</td>
+      <td><b>${esc(l.surname)}</b></td>
+      <td>${esc(l.eventName)}${l.session?'<div style="font-size:11px;color:var(--muted)">'+esc(l.session)+'</div>':''}</td>
+      <td>${esc(l.role)}</td>
+      <td class="num">${l.credits}</td>
+      <td><span class="tag ${l.status}">${l.status}</span></td>
+    </tr>`).join('');
+  $('logList').innerHTML=`<table><thead><tr><th>When</th><th>Family</th><th>Event</th><th>Role</th><th>Cr</th><th>Status</th></tr></thead><tbody>${body}</tbody></table>`;
+}
+function fmtTs(iso){ if(!iso) return ''; const d=new Date(iso); return isNaN(d)?iso:d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}); }
+
+/* ---- Settings + Seasons ---- */
+function renderSettings(){
+  $('setLabel').value=SETTINGS.seasonLabel||'';
+  $('setWindow').value=SETTINGS.seasonWindow||'';
+  $('setBond').value=SETTINGS.bondCredits||10;
+  $('setNote').value=SETTINGS.bondNote||'';
+}
+async function saveSettings(){
+  $('saveSettings').disabled=true;
+  try{
+    await apiPost('setSetting',{key:'seasonLabel',value:$('setLabel').value});
+    await apiPost('setSetting',{key:'seasonWindow',value:$('setWindow').value});
+    await apiPost('setSetting',{key:'bondCredits',value:$('setBond').value});
+    SETTINGS = await apiPost('setSetting',{key:'bondNote',value:$('setNote').value});
+    renderAll(); toast('Settings saved','ok');
+  }catch(err){ toast(err.message,'err'); }
+  $('saveSettings').disabled=false;
+}
+function renderSeasons(){
+  $('seasonList').innerHTML=SEASONS.seasons.map(s=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line-soft)">
+      <div><b>${esc(s.name)}</b> <span style="font-size:11px;color:var(--muted)">(${s.year})</span></div>
+      ${String(s.year)===String(SEASONS.active)?'<span class="tag met">Active</span>':`<button class="btn sm" data-yr="${s.year}">Make active</button>`}
+    </div>`).join('');
+  $('seasonList').querySelectorAll('button[data-yr]').forEach(b=>b.addEventListener('click',()=>setActive(b.dataset.yr,b)));
+}
+async function setActive(year,btn){
+  if(!confirm('Switch the active season to '+year+'? The volunteer page and admin will show that season\u2019s data.')) return;
+  btn.disabled=true;
+  try{ SEASONS=await apiPost('setActiveSeason',{year}); await reloadAll(); toast('Active season switched','ok'); }
+  catch(err){ toast(err.message,'err'); btn.disabled=false; }
+}
+async function addSeason(){
+  const year=$('nsYear').value, name=$('nsName').value, fileId=$('nsFile').value.trim();
+  if(!year||!fileId){ toast('Year and File ID are required','err'); return; }
+  $('addSeasonBtn').disabled=true;
+  try{ SEASONS=await apiPost('addSeason',{year,name,fileId}); $('nsYear').value='';$('nsName').value='';$('nsFile').value=''; renderSeasons(); toast('Season added','ok'); }
+  catch(err){ toast(err.message,'err'); }
+  $('addSeasonBtn').disabled=false;
+}
+
+/* ---- CSV export ---- */
+function downloadCsv(filename, rows){
+  const csv=rows.map(r=>r.map(c=>{const s=String(c==null?'':c); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url);
+}
+function exportStandings(){
+  const need=SETTINGS.bondCredits;
+  const rows=[['Family','Approved credits','Pending credits','Bond requirement','Bond met']];
+  [...FAMILIES].sort((a,b)=>b.approved-a.approved).forEach(f=>rows.push([f.surname,f.approved,f.pending,need,f.approved>=need?'Yes':'No']));
+  downloadCsv('volunteer-standings.csv',rows);
+}
+function exportLog(){
+  const rows=[['When','Family','Event','Role','Session','Credits','Status']];
+  LOG.forEach(l=>rows.push([fmtTs(l.timestamp),l.surname,l.eventName,l.role,l.session,l.credits,l.status]));
+  downloadCsv('volunteer-log.csv',rows);
+}
+
+/* ---- Wire up ---- */
+drawLogos();
+$('loginBtn').addEventListener('click',tryLogin);
+$('pw').addEventListener('keydown',e=>{if(e.key==='Enter')tryLogin();});
+$('signout').addEventListener('click',()=>{$('app').style.display='none';$('login').style.display='flex';$('pw').value='';$('loginErr').textContent='';});
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>showTab(t.dataset.tab)));
+$('addFamBtn').addEventListener('click',addFam);
+$('newFam').addEventListener('keydown',e=>{if(e.key==='Enter')addFam();});
+$('evType').addEventListener('change',loadTemplate);
+$('addRoleBtn').addEventListener('click',()=>{ROLES_DRAFT.push({role:'',credits:1});renderRolesEdit();});
+$('addEvBtn').addEventListener('click',addEv);
+$('fltFam').addEventListener('change',renderLog);
+$('fltStatus').addEventListener('change',renderLog);
+$('saveSettings').addEventListener('click',saveSettings);
+$('addSeasonBtn').addEventListener('click',addSeason);
+$('expStandings').addEventListener('click',exportStandings);
+$('expLog').addEventListener('click',exportLog);
+loadTemplate();
+function emptyMsg(t){return `<div class="empty"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><p>${t}</p></div>`;}
+</script>
+</body>
+</html>
