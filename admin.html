@@ -119,9 +119,11 @@ tr:last-child td{border-bottom:none}
 .role-row{margin-bottom:12px;padding-bottom:10px;border-bottom:1px dashed var(--line-soft)}
 .role-row:last-child{border-bottom:none;margin-bottom:6px}
 .role-row .r-name{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13.5px;font-family:var(--font);margin-bottom:6px}
-.r-sub{display:flex;gap:6px;align-items:center}
+.r-sub{display:flex;gap:6px;align-items:flex-end}
 .r-sub input{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:var(--font)}
-.r-sub input.r-num{flex:0 0 58px;text-align:center}
+.r-numwrap{flex:0 0 58px;display:flex;flex-direction:column;gap:3px}
+.r-numwrap>span{font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;text-align:center;line-height:1}
+.r-sub input.r-num{width:100%;flex:none;text-align:center}
 .role-del{flex:0 0 32px;background:var(--bad-tint);color:var(--bad);border:none;border-radius:6px;cursor:pointer;font-size:16px;line-height:1;height:34px}
 .x{background:none;border:none;color:var(--muted-soft);cursor:pointer;font-size:18px;padding:2px 6px;border-radius:6px}
 .x:hover{background:var(--bad-tint);color:var(--bad)}
@@ -331,15 +333,10 @@ const PW  = '13thAveVol';   // ← change this to your coordinator password
 const APP_VERSION = '2026.06.19-7';   // version of THIS admin page (GitHub)
 let LIVE_VERSION = null;              // version reported by the deployed backend
 
-/* Default role templates per event type (all editable before saving) */
-const ROLE_TEMPLATES = {
-  'Practice night':        [['Gate starter',1,1],['Track marshal',1,2],['Registration',1,1],['Canteen',1,1]],
-  'Club race':             [['Gate starter',2,1],['Scorer',2,1],['Registration',2,2],['Canteen',2,2],['Track marshal',2,2]],
-  'Provincial / Sask Cup': [['Registration check-in',3,2],['Gate crew',3,2],['Canteen',3,2],['Marshal',3,3],['Setup / teardown',3,4]],
-  'Track maintenance':     [['General maintenance',2,4]],
-  'Fundraiser':            [['Helper',2,2]],
-  'Social event':          [['Helper',1,2]]
-};
+/* Roles pre-filled on every new event. First Aid and Track Safety are always
+   required; numbers are left blank so you set Needed/Credits per event. Add any
+   other roles (Gate starter, Registration, etc.) manually with + Add role. */
+const DEFAULT_ROLES = ['First Aid', 'Track Safety'];
 
 let SETTINGS={bondCredits:10}, FAMILIES=[], EVENTS=[], LOG=[], SEASONS={seasons:[],active:''};
 
@@ -540,8 +537,8 @@ function renderRolesEdit(){
       <input type="text" class="r-name" value="${esc(r.role)}" data-i="${i}" data-k="role" placeholder="Role (e.g. Registration check-in)">
       <div class="r-sub">
         <input type="text" value="${esc(r.slot||'')}" data-i="${i}" data-k="slot" placeholder="Time (optional)">
-        <input type="number" class="r-num" value="${r.spots||0}" data-i="${i}" data-k="spots" min="0" placeholder="Spots" title="Spots needed (0 = no limit)">
-        <input type="number" class="r-num" value="${r.credits}" data-i="${i}" data-k="credits" min="0" placeholder="Cr" title="Credits per spot">
+        <div class="r-numwrap"><span>Needed</span><input type="number" class="r-num" value="${(r.spots===''||r.spots==null)?'':r.spots}" data-i="${i}" data-k="spots" min="0" placeholder="" title="People needed for this role (blank or 0 = no limit)"></div>
+        <div class="r-numwrap"><span>Credits</span><input type="number" class="r-num" value="${(r.credits===''||r.credits==null)?'':r.credits}" data-i="${i}" data-k="credits" min="0" placeholder="" title="Credits earned per person"></div>
         <button class="role-del" data-del="${i}">&times;</button>
       </div>
     </div>`).join('') || '<p class="sub">No roles yet — add at least one.</p>';
@@ -552,8 +549,8 @@ function renderRolesEdit(){
 }
 function loadTemplate(){
   if(EDIT_ID) return; // don't overwrite roles while editing an existing event
-  const t=ROLE_TEMPLATES[$('evType').value]||[];
-  ROLES_DRAFT=t.map(([role,credits,spots])=>({role,credits,spots:spots||0,slot:''})); renderRolesEdit();
+  ROLES_DRAFT = DEFAULT_ROLES.map(role=>({role,slot:'',spots:'',credits:''}));
+  renderRolesEdit();
 }
 function startEdit(id){
   const e=EVENTS.find(x=>String(x.eventId)===String(id)); if(!e) return;
@@ -761,7 +758,7 @@ $('evRepeat').addEventListener('change',()=>{
 });
 document.querySelectorAll('#dowPick .dow').forEach(b=>b.addEventListener('click',()=>b.classList.toggle('on')));
 $('evUpcoming').addEventListener('change',renderEvents);
-$('addRoleBtn').addEventListener('click',()=>{ROLES_DRAFT.push({role:'',slot:'',spots:1,credits:1});renderRolesEdit();});
+$('addRoleBtn').addEventListener('click',()=>{ROLES_DRAFT.push({role:'',slot:'',spots:'',credits:''});renderRolesEdit();});
 $('addEvBtn').addEventListener('click',addEv);
 $('cancelEdit').addEventListener('click',exitEdit);
 $('fltFam').addEventListener('change',renderLog);
