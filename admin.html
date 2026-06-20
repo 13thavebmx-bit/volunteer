@@ -293,6 +293,7 @@ tr:last-child td{border-bottom:none}
   <!-- SETUP -->
   <div class="sec" id="sec-setup">
     <div class="sec-head"><h2>Setup</h2><span class="sub">Seasons &amp; bond settings</span></div>
+    <p class="sub" id="verLine" style="margin:-6px 0 14px"></p>
     <div class="card">
       <div class="card-head">Season settings</div>
       <div style="padding:14px">
@@ -327,6 +328,8 @@ tr:last-child td{border-bottom:none}
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
 const PW  = '13thAveVol';   // ← change this to your coordinator password
+const APP_VERSION = '2026.06.19-4';   // version of THIS admin page (GitHub)
+let LIVE_VERSION = null;              // version reported by the deployed backend
 
 /* Default role templates per event type (all editable before saving) */
 const ROLE_TEMPLATES = {
@@ -382,6 +385,7 @@ async function boot(){
 }
 async function reloadAll(){
   const data = await apiGet('bootstrap');
+  LIVE_VERSION = data.version || null;
   SETTINGS=data.settings; FAMILIES=data.families; EVENTS=data.events;
   LOG = await apiGet('getLog');
   SEASONS = await apiGet('listSeasons');
@@ -678,6 +682,11 @@ function fmtTs(iso){ if(!iso) return ''; const d=new Date(iso); return isNaN(d)?
 function renderSettings(){
   $('setLabel').value=SETTINGS.seasonLabel||'';
   $('setWindow').value=SETTINGS.seasonWindow||'';
+  const match = LIVE_VERSION===APP_VERSION;
+  $('verLine').innerHTML = `This admin page: <b>v${APP_VERSION}</b> &nbsp;·&nbsp; Deployed backend: `+
+    (LIVE_VERSION
+      ? `<b style="color:${match?'var(--ok)':'var(--warn)'}">v${LIVE_VERSION}</b>` + (match?' ✓ in sync':' — redeploy the backend (Manage deployments → New version) to match')
+      : `<b style="color:var(--muted-soft)">unknown</b>`);
   $('setBond').value=SETTINGS.bondCredits||10;
   $('setNote').value=SETTINGS.bondNote||'';
 }

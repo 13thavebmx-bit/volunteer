@@ -209,7 +209,7 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
     </div>
     <div class="errbox" id="errbox" style="display:none"></div>
 
-    <div class="foot"><a href="admin.html">Coordinator? Open the admin panel →</a></div>
+    <div class="foot"><a href="admin.html">Coordinator? Open the admin panel →</a><div id="verLine" style="font-size:10.5px;color:var(--muted-soft);margin-top:6px"></div></div>
   </div>
 </div>
 
@@ -221,6 +221,7 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
    This is the only line you ever change in this file.
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
+const APP_VERSION = '2026.06.19-4';
 
 /* ---- State ---- */
 let SETTINGS = {bondCredits:10, seasonLabel:'', seasonWindow:'', bondNote:''};
@@ -435,6 +436,8 @@ async function init(){
     const data = await apiGet('bootstrap');
     SETTINGS = data.settings; FAMILIES = data.families; EVENTS = data.events;
     setConn('live');
+    const live=data.version||'?';
+    $('verLine').textContent = `v${APP_VERSION}` + (live!==APP_VERSION?` · backend v${live}`:'');
     renderSeasonBar(); renderFamilies(); renderEvents();
     $('loading').style.display='none';
     $('form').style.display='block';
