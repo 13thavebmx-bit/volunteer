@@ -73,7 +73,20 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
 .seg button small{display:block;font-weight:500;color:var(--muted);font-size:10.5px;margin-top:2px}
 .seg button.on{border-color:var(--teal);background:var(--teal-tint);color:var(--teal-dark)}
 
-/* Credit badge */
+/* Spot list (pick a role/slot) */
+#roleList{display:flex;flex-direction:column;gap:8px}
+.spot{display:flex;align-items:center;gap:10px;padding:11px 13px;border:1px solid var(--line);border-radius:var(--radius-sm);background:#fff;cursor:pointer;transition:.12s}
+.spot:active{transform:scale(.995)}
+.spot.sel{border-color:var(--teal);background:var(--teal-tint);box-shadow:0 0 0 2px rgba(0,152,184,.18)}
+.spot.full{opacity:.55;cursor:not-allowed;background:#FAFBFC}
+.spot-main{flex:1;min-width:0}
+.spot-role{font-size:14.5px;font-weight:700}
+.spot-when{font-size:12px;color:var(--muted);margin-top:1px}
+.spot-right{text-align:right;flex-shrink:0}
+.spot-cr{font-family:'Anton',var(--font);font-size:18px;color:var(--teal);line-height:1}
+.spot-cr small{font-family:var(--font);font-size:10px;color:var(--muted);font-weight:600;display:block}
+.spot-left{font-size:11px;font-weight:700;margin-top:3px}
+.spot-left.open{color:var(--ok)} .spot-left.tight{color:var(--warn)} .spot-left.none{color:var(--bad)}
 .creditbadge{display:none;align-items:center;gap:8px;margin-top:12px;background:var(--teal-tint);
   border:1px solid #BDE6F0;border-radius:var(--radius-sm);padding:10px 13px}
 .creditbadge.show{display:flex}
@@ -176,13 +189,8 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
         </div>
       </div>
 
-      <label for="role">Role you helped with</label>
-      <select id="role" disabled><option value="">Select an event first…</option></select>
-
-      <div class="creditbadge" id="creditBadge">
-        <b id="creditNum">0</b>
-        <span><span id="creditWord">credits</span> · pending approval</span>
-      </div>
+      <label>Pick a spot</label>
+      <div id="roleList"><p class="lead" style="margin:0">Select an event first.</p></div>
 
       <div class="notice">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
@@ -190,7 +198,7 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
       </div>
 
       <button class="btn primary" id="submit" disabled>
-        <svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 6"/></svg> Submit shift
+        <svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 6"/></svg> <span id="submitLabel">Sign up</span>
       </button>
     </div>
 
@@ -219,6 +227,7 @@ let SETTINGS = {bondCredits:10, seasonLabel:'', seasonWindow:'', bondNote:''};
 let FAMILIES = [], EVENTS = [];
 let SESSION = '';   // chosen practice session
 let CUR_EVENT = null;
+let CUR_ROLE = null; // index of the selected spot within CUR_EVENT.roles
 
 /* ---- API helpers (same convention as the Race Manager) ---- */
 async function apiGet(action, params={}){
@@ -320,66 +329,83 @@ function showProgress(fid){
 function onEventChange(){
   const id=$('event').value;
   CUR_EVENT = EVENTS.find(e=>String(e.eventId)===String(id)) || null;
+  CUR_ROLE = null;
   const isPractice = CUR_EVENT && /practice/i.test(CUR_EVENT.type||CUR_EVENT.name||'');
   $('sessionWrap').style.display = isPractice ? 'block' : 'none';
   if(!isPractice){ SESSION=''; [...document.querySelectorAll('#seg button')].forEach(b=>b.classList.remove('on')); }
-
-  const role=$('role');
-  if(CUR_EVENT && CUR_EVENT.roles.length){
-    role.disabled=false;
-    role.innerHTML='<option value="">Select a role…</option>'+
-      CUR_EVENT.roles.map((r,i)=>`<option value="${i}">${esc(r.role)} (${r.credits})</option>`).join('');
-  } else {
-    role.disabled=true;
-    role.innerHTML='<option value="">No roles set for this event</option>';
-  }
-  $('creditBadge').classList.remove('show');
+  renderRoleList();
   refreshSubmit();
 }
 
-function onRoleChange(){
-  const i=$('role').value;
-  if(CUR_EVENT && i!==''){
-    const r=CUR_EVENT.roles[Number(i)];
-    let c = Number(r.credits)||0;
-    if(SESSION==='Both' && /practice/i.test(CUR_EVENT.type||'')) c=c*2; // both sessions = double
-    $('creditNum').textContent=c;
-    $('creditWord').textContent = c===1?'credit':'credits';
-    $('creditBadge').classList.add('show');
-  } else {
-    $('creditBadge').classList.remove('show');
-  }
-  refreshSubmit();
+function spotCredits(r){
+  let c=Number(r.credits)||0;
+  if(SESSION==='Both' && CUR_EVENT && /practice/i.test(CUR_EVENT.type||'')) c*=2;
+  return c;
+}
+
+function renderRoleList(){
+  const wrap=$('roleList');
+  if(!CUR_EVENT){ wrap.innerHTML='<p class="lead" style="margin:0">Select an event first.</p>'; return; }
+  if(!CUR_EVENT.roles.length){ wrap.innerHTML='<p class="lead" style="margin:0">No spots set up for this event yet.</p>'; return; }
+  wrap.innerHTML = CUR_EVENT.roles.map((r,i)=>{
+    const capped = r.spots>0;
+    const left = capped ? Math.max(0, r.spots - r.filled) : null;
+    const full = capped && left<=0;
+    const c = spotCredits(r);
+    let leftLabel, leftClass;
+    if(!capped){ leftLabel='Open'; leftClass='open'; }
+    else if(full){ leftLabel='Full'; leftClass='none'; }
+    else { leftLabel=`${left} of ${r.spots} left`; leftClass = left<=1?'tight':'open'; }
+    return `<div class="spot ${full?'full':''} ${CUR_ROLE===i?'sel':''}" data-i="${i}" ${full?'':'role="button" tabindex="0"'}>
+      <div class="spot-main">
+        <div class="spot-role">${esc(r.role)}</div>
+        ${r.slot?`<div class="spot-when">${esc(r.slot)}</div>`:''}
+      </div>
+      <div class="spot-right">
+        <div class="spot-cr">${c}<small>${c===1?'credit':'credits'}</small></div>
+        <div class="spot-left ${leftClass}">${leftLabel}</div>
+      </div>
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('.spot:not(.full)').forEach(el=>{
+    el.addEventListener('click',()=>{ CUR_ROLE=+el.dataset.i; renderRoleList(); refreshSubmit(); });
+  });
 }
 
 function refreshSubmit(){
   const isPractice = CUR_EVENT && /practice/i.test(CUR_EVENT.type||'');
-  const ok = $('family').value && $('event').value && $('role').value!=='' &&
-             (!isPractice || SESSION);
+  const ok = $('family').value && CUR_EVENT && CUR_ROLE!==null && (!isPractice || SESSION);
   $('submit').disabled = !ok;
+  if(ok){
+    const c=spotCredits(CUR_EVENT.roles[CUR_ROLE]);
+    $('submitLabel').textContent = `Sign up — ${c} ${c===1?'credit':'credits'} (pending)`;
+  } else {
+    $('submitLabel').textContent = 'Sign up';
+  }
 }
 
 async function submitShift(){
   const fid=$('family').value;
-  const i=$('role').value;
-  const r=CUR_EVENT.roles[Number(i)];
-  let credits=Number(r.credits)||0;
-  if(SESSION==='Both' && /practice/i.test(CUR_EVENT.type||'')) credits*=2;
-
+  const r=CUR_EVENT.roles[CUR_ROLE];
+  const credits=spotCredits(r);
   $('submit').disabled=true;
   try{
     const res = await apiPost('logVolunteer', {entry:{
       familyId:fid, eventId:CUR_EVENT.eventId, eventName:CUR_EVENT.name,
-      role:r.role, session:SESSION, credits:credits
+      role:r.role, slot:r.slot||'', session:SESSION, credits:credits
     }});
-    toast(`Logged — ${res.credits} ${res.credits===1?'credit':'credits'} pending approval`, 'ok');
-    // refresh families so pending count updates, keep family selected
+    toast(`Signed up — ${res.credits} ${res.credits===1?'credit':'credits'} pending approval`, 'ok');
+    // refresh data so spot counts + progress update, keep family selected
+    EVENTS = await apiGet('getEvents');
     FAMILIES = await apiGet('getFamilies');
     showProgress(fid);
-    // reset event/role/session
+    renderEvents();
     $('event').value=''; onEventChange();
   }catch(err){
-    toast(err.message,'err'); refreshSubmit();
+    // a full-spot race or other error: refresh counts so the list reflects reality
+    toast(err.message,'err');
+    try{ EVENTS = await apiGet('getEvents'); renderRoleList(); }catch(e){}
+    refreshSubmit();
   }
 }
 
@@ -387,12 +413,11 @@ async function submitShift(){
 function bindEvents(){
   $('family').addEventListener('change', e=>{ showProgress(e.target.value); refreshSubmit(); });
   $('event').addEventListener('change', onEventChange);
-  $('role').addEventListener('change', onRoleChange);
   $('submit').addEventListener('click', submitShift);
   document.querySelectorAll('#seg button').forEach(b=>{
     b.addEventListener('click',()=>{
       document.querySelectorAll('#seg button').forEach(x=>x.classList.remove('on'));
-      b.classList.add('on'); SESSION=b.dataset.s; onRoleChange(); refreshSubmit();
+      b.classList.add('on'); SESSION=b.dataset.s; renderRoleList(); refreshSubmit();
     });
   });
 }

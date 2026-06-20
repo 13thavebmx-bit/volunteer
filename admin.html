@@ -116,9 +116,13 @@ tr:last-child td{border-bottom:none}
 .inline{display:flex;gap:8px}
 .inline input{flex:1}
 .roles-edit{border:1px dashed var(--line);border-radius:var(--radius-sm);padding:10px;margin-bottom:12px}
-.role-row{display:grid;grid-template-columns:1fr 70px 32px;gap:8px;margin-bottom:8px;align-items:center}
-.role-row input{padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13.5px;font-family:var(--font)}
-.role-del{background:var(--bad-tint);color:var(--bad);border:none;border-radius:6px;cursor:pointer;font-size:16px;line-height:1;height:34px}
+.role-row{margin-bottom:12px;padding-bottom:10px;border-bottom:1px dashed var(--line-soft)}
+.role-row:last-child{border-bottom:none;margin-bottom:6px}
+.role-row .r-name{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13.5px;font-family:var(--font);margin-bottom:6px}
+.r-sub{display:flex;gap:6px;align-items:center}
+.r-sub input{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;font-family:var(--font)}
+.r-sub input.r-num{flex:0 0 58px;text-align:center}
+.role-del{flex:0 0 32px;background:var(--bad-tint);color:var(--bad);border:none;border-radius:6px;cursor:pointer;font-size:16px;line-height:1;height:34px}
 .x{background:none;border:none;color:var(--muted-soft);cursor:pointer;font-size:18px;padding:2px 6px;border-radius:6px}
 .x:hover{background:var(--bad-tint);color:var(--bad)}
 
@@ -187,6 +191,19 @@ tr:last-child td{border-bottom:none}
   <!-- APPROVALS -->
   <div class="sec" id="sec-approve">
     <div class="sec-head"><h2>Pending approvals</h2><span class="sub" id="apvSub"></span></div>
+    <div class="card">
+      <div class="card-head">Add a shift manually <span style="font-weight:400;color:var(--muted);font-size:11.5px">— ignores the spot cap</span></div>
+      <div style="padding:12px 14px">
+        <div class="inline" style="margin-bottom:8px">
+          <select id="mFam" style="flex:1;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font);background:#fff"><option value="">Family…</option></select>
+          <select id="mEvent" style="flex:1;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font);background:#fff"><option value="">Event…</option></select>
+        </div>
+        <div class="inline">
+          <select id="mRole" style="flex:1;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font);background:#fff" disabled><option value="">Pick an event first…</option></select>
+          <button class="btn primary" id="mAddBtn">Add shift</button>
+        </div>
+      </div>
+    </div>
     <div class="card"><div id="approvals"></div></div>
   </div>
 
@@ -312,12 +329,12 @@ const PW  = '13thAveVol';   // ← change this to your coordinator password
 
 /* Default role templates per event type (all editable before saving) */
 const ROLE_TEMPLATES = {
-  'Practice night':        [['Gate starter',1],['Track marshal',1],['Registration',1],['Canteen',1]],
-  'Club race':             [['Gate starter',2],['Scorer',2],['Registration',2],['Canteen',2],['Track marshal',2]],
-  'Provincial / Sask Cup': [['Gate crew',3],['Registration',3],['Canteen',3],['Marshal',3],['Setup / teardown',3]],
-  'Track maintenance':     [['General maintenance',2]],
-  'Fundraiser':            [['Helper',2]],
-  'Social event':          [['Helper',1]]
+  'Practice night':        [['Gate starter',1,1],['Track marshal',1,2],['Registration',1,1],['Canteen',1,1]],
+  'Club race':             [['Gate starter',2,1],['Scorer',2,1],['Registration',2,2],['Canteen',2,2],['Track marshal',2,2]],
+  'Provincial / Sask Cup': [['Registration check-in',3,2],['Gate crew',3,2],['Canteen',3,2],['Marshal',3,3],['Setup / teardown',3,4]],
+  'Track maintenance':     [['General maintenance',2,4]],
+  'Fundraiser':            [['Helper',2,2]],
+  'Social event':          [['Helper',1,2]]
 };
 
 let SETTINGS={bondCredits:10}, FAMILIES=[], EVENTS=[], LOG=[], SEASONS={seasons:[],active:''};
@@ -405,6 +422,7 @@ function renderDash(){
 
 /* ---- Approvals ---- */
 function renderApprovals(){
+  renderManualAdd();
   const pend=LOG.filter(l=>l.status==='pending' && !l.eventCancelled);
   $('apvPill').textContent=pend.length;
   $('apvPill').style.display=pend.length?'flex':'none';
@@ -423,6 +441,34 @@ function renderApprovals(){
   $('approvals').querySelectorAll('button[data-act]').forEach(b=>{
     b.addEventListener('click',()=>decide(b.dataset.id,b.dataset.act,b));
   });
+}
+function renderManualAdd(){
+  $('mFam').innerHTML='<option value="">Family…</option>'+FAMILIES.map(f=>`<option value="${f.familyId}">${esc(f.surname)}</option>`).join('');
+  const active=EVENTS.filter(e=>e.status!=='cancelled').sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+  $('mEvent').innerHTML='<option value="">Event…</option>'+active.map(e=>`<option value="${e.eventId}">${esc(e.name)}${e.date?' — '+e.date:''}</option>`).join('');
+}
+function mRoleOptions(){
+  const ev=EVENTS.find(e=>String(e.eventId)===String($('mEvent').value));
+  const role=$('mRole');
+  if(!ev||!ev.roles.length){ role.disabled=true; role.innerHTML='<option value="">Pick an event first…</option>'; return; }
+  role.disabled=false;
+  role.innerHTML='<option value="">Role…</option>'+ev.roles.map((r,i)=>{
+    const t=r.slot?` (${esc(r.slot)})`:''; const cap=r.spots?` — ${r.filled}/${r.spots}`:'';
+    return `<option value="${i}">${esc(r.role)}${t}${cap} · ${r.credits}cr</option>`;
+  }).join('');
+}
+async function manualAdd(){
+  const fid=$('mFam').value, eid=$('mEvent').value, ri=$('mRole').value;
+  if(!fid||!eid||ri===''){ toast('Pick a family, event, and role','err'); return; }
+  const ev=EVENTS.find(e=>String(e.eventId)===String(eid)); const r=ev.roles[+ri];
+  $('mAddBtn').disabled=true;
+  try{
+    await apiPost('logVolunteer',{entry:{familyId:fid,eventId:ev.eventId,eventName:ev.name,role:r.role,slot:r.slot||'',session:'',credits:r.credits,override:true}});
+    EVENTS=await apiGet('getEvents'); LOG=await apiGet('getLog'); FAMILIES=await apiGet('getFamilies');
+    $('mRole').value='';
+    renderAll(); toast('Shift added — pending approval','ok');
+  }catch(err){ toast(err.message,'err'); }
+  $('mAddBtn').disabled=false;
 }
 async function decide(logId,status,btn){
   btn.disabled=true;
@@ -485,18 +531,22 @@ let ROLES_DRAFT=[];
 function renderRolesEdit(){
   $('rolesEdit').innerHTML = ROLES_DRAFT.map((r,i)=>`
     <div class="role-row">
-      <input type="text" value="${esc(r.role)}" data-i="${i}" data-k="role" placeholder="Role">
-      <input type="number" value="${r.credits}" data-i="${i}" data-k="credits" min="0" placeholder="Cr">
-      <button class="role-del" data-del="${i}">&times;</button>
+      <input type="text" class="r-name" value="${esc(r.role)}" data-i="${i}" data-k="role" placeholder="Role (e.g. Registration check-in)">
+      <div class="r-sub">
+        <input type="text" value="${esc(r.slot||'')}" data-i="${i}" data-k="slot" placeholder="Time (optional)">
+        <input type="number" class="r-num" value="${r.spots||0}" data-i="${i}" data-k="spots" min="0" placeholder="Spots" title="Spots needed (0 = no limit)">
+        <input type="number" class="r-num" value="${r.credits}" data-i="${i}" data-k="credits" min="0" placeholder="Cr" title="Credits per spot">
+        <button class="role-del" data-del="${i}">&times;</button>
+      </div>
     </div>`).join('') || '<p class="sub">No roles yet — add at least one.</p>';
   $('rolesEdit').querySelectorAll('input').forEach(inp=>{
-    inp.addEventListener('input',()=>{ const i=+inp.dataset.i,k=inp.dataset.k; ROLES_DRAFT[i][k]= k==='credits'?(+inp.value||0):inp.value; });
+    inp.addEventListener('input',()=>{ const i=+inp.dataset.i,k=inp.dataset.k; ROLES_DRAFT[i][k]= (k==='credits'||k==='spots')?(+inp.value||0):inp.value; });
   });
   $('rolesEdit').querySelectorAll('button[data-del]').forEach(b=>b.addEventListener('click',()=>{ ROLES_DRAFT.splice(+b.dataset.del,1); renderRolesEdit(); }));
 }
 function loadTemplate(){
   const t=ROLE_TEMPLATES[$('evType').value]||[];
-  ROLES_DRAFT=t.map(([role,credits])=>({role,credits})); renderRolesEdit();
+  ROLES_DRAFT=t.map(([role,credits,spots])=>({role,credits,spots:spots||0,slot:''})); renderRolesEdit();
 }
 function renderEvents(){
   if(!EVENTS.length){ $('evList').innerHTML=emptyMsg('No events yet. Add the season\u2019s events above.'); return; }
@@ -509,7 +559,11 @@ function renderEvents(){
   list.sort((a,b)=>String(a.date||'9999').localeCompare(String(b.date||'9999')));
   if(!list.length){ $('evList').innerHTML=emptyMsg('No upcoming events. Uncheck “Upcoming only” to see past ones.'); return; }
   const rows=list.map(e=>{
-    const roleStr=e.roles.map(r=>`${esc(r.role)} (${r.credits})`).join(', ');
+    const roleStr=e.roles.map(r=>{
+      const t=r.slot?` ${esc(r.slot)}`:'';
+      const cap=r.spots?` · ${r.filled}/${r.spots}`:(r.filled?` · ${r.filled} signed up`:'');
+      return `${esc(r.role)}${t} (${r.credits} cr${cap})`;
+    }).join('  ·  ');
     const cancelled=e.status==='cancelled';
     return `<tr class="${cancelled?'ev-cancelled':''}">
       <td><b>${esc(e.name)}</b>${cancelled?' <span class="tag cancelled">Cancelled</span>':''}
@@ -649,6 +703,8 @@ $('pw').addEventListener('keydown',e=>{if(e.key==='Enter')tryLogin();});
 $('signout').addEventListener('click',()=>{$('app').style.display='none';$('login').style.display='flex';$('pw').value='';$('loginErr').textContent='';});
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>showTab(t.dataset.tab)));
 $('addFamBtn').addEventListener('click',addFam);
+$('mEvent').addEventListener('change',mRoleOptions);
+$('mAddBtn').addEventListener('click',manualAdd);
 $('newFam').addEventListener('keydown',e=>{if(e.key==='Enter')addFam();});
 $('evType').addEventListener('change',loadTemplate);
 $('evRepeat').addEventListener('change',()=>{
@@ -659,7 +715,7 @@ $('evRepeat').addEventListener('change',()=>{
 });
 document.querySelectorAll('#dowPick .dow').forEach(b=>b.addEventListener('click',()=>b.classList.toggle('on')));
 $('evUpcoming').addEventListener('change',renderEvents);
-$('addRoleBtn').addEventListener('click',()=>{ROLES_DRAFT.push({role:'',credits:1});renderRolesEdit();});
+$('addRoleBtn').addEventListener('click',()=>{ROLES_DRAFT.push({role:'',slot:'',spots:1,credits:1});renderRolesEdit();});
 $('addEvBtn').addEventListener('click',addEv);
 $('fltFam').addEventListener('change',renderLog);
 $('fltStatus').addEventListener('change',renderLog);
