@@ -105,6 +105,14 @@ tr:last-child td{border-bottom:none}
 .tag.pending{background:var(--warn-tint);color:var(--warn)}
 .tag.approved{background:var(--ok-tint);color:var(--ok)}
 .tag.rejected{background:var(--bad-tint);color:var(--bad)}
+.tag.released{background:#ECEEF0;color:var(--muted)}
+.guide h3{font-size:15px;margin:0 0 8px;color:var(--ink)}
+.guide p{margin:0 0 9px;font-size:13.5px;line-height:1.55;color:var(--ink)}
+.guide ul{margin:0 0 9px;padding-left:20px}
+.guide li{font-size:13.5px;line-height:1.55;margin-bottom:5px;color:var(--ink)}
+.guide b{color:var(--ink)}
+.guide .lead{font-size:13.5px;color:var(--muted);margin:0 0 12px}
+.guide .step{font-weight:700;color:var(--teal)}
 .row-pending{background:#FFFBF0}
 
 /* Forms */
@@ -185,6 +193,7 @@ tr:last-child td{border-bottom:none}
     <button class="tab" data-tab="ev"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Events</button>
     <button class="tab" data-tab="log"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg>Full log</button>
     <button class="tab" data-tab="setup"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>Setup</button>
+    <button class="tab" data-tab="guide"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>Guide</button>
   </div>
 
   <!-- DASHBOARD -->
@@ -315,7 +324,7 @@ tr:last-child td{border-bottom:none}
     <div class="sec-head"><h2>Full log</h2><button class="btn sm" id="expLog"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export CSV</button></div>
     <div class="filters">
       <select id="fltFam"><option value="">All families</option></select>
-      <select id="fltStatus"><option value="">All statuses</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select>
+      <select id="fltStatus"><option value="">All statuses</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="released">Released</option></select>
     </div>
     <div class="card"><div id="logList"></div></div>
   </div>
@@ -348,6 +357,89 @@ tr:last-child td{border-bottom:none}
     </div>
   </div>
 
+  <!-- GUIDE -->
+  <div class="sec" id="sec-guide">
+    <div class="sec-head"><h2>Guide</h2><span class="sub">How this app works</span></div>
+
+    <div class="card guide"><div style="padding:14px">
+      <h3>The big picture</h3>
+      <p class="lead">There are two pages. <b>This admin page</b> is where you (the coordinator) run things. The <b>volunteer page</b> is the public link families use to sign up for shifts.</p>
+      <p>The idea: each family owes a <b>volunteer bond</b>, refunded once they earn enough approved credits in a season. Volunteers sign up for spots at events, you approve the shifts, and approved credits count toward each family's bond.</p>
+      <ul>
+        <li><b>You add</b> the season's events and the roles each one needs.</li>
+        <li><b>Families sign up</b> on the volunteer page for the spots they'll cover.</li>
+        <li><b>You approve</b> each shift in Approvals; approved credits roll up per family.</li>
+      </ul>
+    </div></div>
+
+    <div class="card guide"><div style="padding:14px">
+      <h3>Dashboard</h3>
+      <p>Your at-a-glance view: how many families have met their bond, pending approvals waiting on you, and overall signup activity. Start here each time you log in.</p>
+    </div></div>
+
+    <div class="card guide"><div style="padding:14px">
+      <h3>Approvals — the thing you'll do most</h3>
+      <p>Every shift a volunteer signs up for lands here as <b>pending</b>. For each one, hit the green check to <b>approve</b> (credits count) or the red X to <b>reject</b> (credits don't count, and the spot reopens). The Role column shows who volunteered.</p>
+      <p><b>Add a shift manually:</b> if someone volunteered but didn't sign up online, use this — pick the family, event, volunteer name, and role. It ignores the spot limit, so it works for past events too.</p>
+      <p><b>Import past shifts (CSV):</b> for backfilling a whole event at once. Download the template, fill it in, paste or upload it. Bad rows are skipped and listed back by line number so you can fix just those. Tick "Mark as approved" since they already happened.</p>
+    </div></div>
+
+    <div class="card guide"><div style="padding:14px">
+      <h3>Families</h3>
+      <p>Your club families and their credit standing. Add a family with their surname. Each shows approved credits vs. what's needed, plus anything still pending.</p>
+      <p><b>Board members:</b> toggle the Board switch for a family and their bond is automatically considered met — no credits required. Use it for your board members only.</p>
+    </div></div>
+
+    <div class="card guide"><div style="padding:14px">
+      <h3>Events &amp; roles</h3>
+      <p>Create everything volunteers can sign up for. Per event you set a name, type, date, and the list of roles.</p>
+      <ul>
+        <li><b>Needed</b> = how many people you want in that role (blank or 0 = no limit). <b>Credits</b> = what each person earns for it.</li>
+        <li><b>Reorder roles</b> by dragging the grip handle (⠿), or the ↑/↓ buttons — handy for big events organized by time slot.</li>
+        <li><b>Repeats → Weekly</b> generates an event on chosen weekdays across a date range (e.g. every Tue/Thu practice all summer).</li>
+        <li><b>Open signups early</b> puts a big event (like a provincial) on the volunteer page right away, even weeks out, so people can plan ahead. It shows with a ★.</li>
+        <li><b>Edit</b> any event later; existing signups are never changed by an edit.</li>
+      </ul>
+      <h3 style="margin-top:14px">Presets — set big events up once</h3>
+      <p>A preset is a saved bundle of a type + its full role list. Build a 40-role provincial once, click <b>★ Save these roles as a preset</b>, and name it. Next time, pick it from <b>Start from preset</b> and the whole thing loads, ready to edit. Presets are shared and survive every season.</p>
+      <p><b>Custom event types</b> (e.g. "Skills Training Camp"): choose "Other (specify)" in the Type list, type it, and it's remembered in the dropdown from then on.</p>
+    </div></div>
+
+    <div class="card guide"><div style="padding:14px">
+      <h3>Full log &amp; releasing a spot</h3>
+      <p>Every signup ever, filterable by family or status, exportable to CSV. This is also where you <b>free up a spot</b>: if someone signs up and can't make it, hit <b>Release spot</b> on their row. The spot reopens on the volunteer list, credits stop counting, and the entry stays marked <b>Released</b> for the record. Use <b>Restore</b> to undo.</p>
+    </div></div>
+
+    <div class="card guide"><div style="padding:14px">
+      <h3>Volunteers from other clubs</h3>
+      <p>At provincials, helpers from Globe, Warman, or elsewhere can sign up too. On the volunteer page they pick <b>"Volunteer from another club"</b> and choose their club. These shifts log with <b>no credits</b> (nothing to track for them) and are auto-approved, but show in your log with a <b>Guest</b> tag and their club name — so you can thank them.</p>
+    </div></div>
+
+    <div class="card guide"><div style="padding:14px">
+      <h3>What volunteers see</h3>
+      <p>On the volunteer page a family picks their name, who's volunteering, the event, and then <b>checks off every spot</b> they'll cover (one person can grab several shifts at once). They get a confirmation, and it arrives in your Approvals as pending. If they need to cancel or change, there's a link to email the coordinator.</p>
+    </div></div>
+
+    <div class="card guide"><div style="padding:14px">
+      <h3>Setup</h3>
+      <p>Season label and window, the <b>credits required for a bond refund</b>, and the bond note volunteers see. Also where you manage seasons — each season is its own data file, so rolling into next year starts fresh while presets and event types carry over.</p>
+      <p>The line at the top (<b>This admin page</b> vs. <b>Deployed backend</b>) confirms the front-end and back-end versions match. Green and "in sync" = good.</p>
+    </div></div>
+
+    <div class="card guide"><div style="padding:14px">
+      <h3>Quick answers</h3>
+      <ul>
+        <li><b>Someone can't make their shift</b> → Full log → Release spot.</li>
+        <li><b>Reopen a spot you rejected by mistake</b> → Full log → Restore (released) or re-add manually.</li>
+        <li><b>A volunteer helped but never signed up</b> → Approvals → Add a shift manually.</li>
+        <li><b>Backfill a past event's volunteers</b> → Approvals → Import past shifts (CSV).</li>
+        <li><b>Get a provincial open for early signups</b> → edit the event, tick "Open signups early."</li>
+        <li><b>Thank the out-of-club helpers</b> → Full log, filter/scan for the Guest tag (or export CSV).</li>
+        <li><b>A family is exempt (board)</b> → Families → toggle Board.</li>
+      </ul>
+    </div></div>
+  </div>
+
 </div>
 
 <div class="toast" id="toast"></div>
@@ -358,7 +450,7 @@ tr:last-child td{border-bottom:none}
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
 const PW  = '13thAveVol';   // ← change this to your coordinator password
-const APP_VERSION = '2026.06.19-15';   // version of THIS admin page (GitHub)
+const APP_VERSION = '2026.06.19-17';   // version of THIS admin page (GitHub)
 let LIVE_VERSION = null;              // version reported by the deployed backend
 
 /* Roles pre-filled on every new event. First Aid and Track Safety are always
@@ -563,9 +655,11 @@ async function decide(logId,status,btn){
   try{
     await apiPost('updateEntryStatus',{logId,status});
     const e=LOG.find(l=>String(l.logId)===String(logId)); if(e) e.status=status;
+    EVENTS = await apiGet('getEvents');     // spot counts change when a spot is freed/refilled
     FAMILIES = await apiGet('getFamilies');
     renderAll();
-    toast(status==='approved'?'Approved':'Rejected', status==='approved'?'ok':'');
+    const msg={approved:'Approved',rejected:'Rejected',released:'Spot released — it\u2019s open again',pending:'Restored to pending'}[status]||'Updated';
+    toast(msg, (status==='approved'||status==='released'||status==='pending')?'ok':'');
   }catch(err){ toast(err.message,'err'); btn.disabled=false; }
 }
 
@@ -852,7 +946,12 @@ function renderLog(){
   const ff=$('fltFam').value, fs=$('fltStatus').value;
   let rows=LOG.filter(l=>(!ff||l.surname===ff)&&(!fs||l.status===fs));
   if(!rows.length){ $('logList').innerHTML=emptyMsg('No log entries match.'); return; }
-  const body=rows.map(l=>`<tr>
+  const body=rows.map(l=>{
+    const canRelease = !l.eventCancelled && (l.status==='pending'||l.status==='approved');
+    const action = canRelease
+      ? `<button class="btn sm ghost" data-rel="${l.logId}" title="Free up this spot — it reopens for others">Release spot</button>`
+      : (l.status==='released' ? `<button class="btn sm ghost" data-rest="${l.logId}" title="Put this signup back as pending">Restore</button>` : '');
+    return `<tr>
       <td style="white-space:nowrap;font-size:12px;color:var(--muted)">${fmtTs(l.timestamp)}</td>
       <td><b>${esc(l.surname)}</b>${l.familyId==='GUEST'?' <span class="tag" style="background:var(--teal-tint,#E8F6FA);color:var(--teal,#0098B8)">Guest</span>':''}</td>
       <td>${esc(l.eventName)}${l.session?'<div style="font-size:11px;color:var(--muted)">'+esc(l.session)+'</div>':''}</td>
@@ -860,8 +959,12 @@ function renderLog(){
       <td>${esc(l.volunteer||'—')}</td>
       <td class="num">${l.credits}</td>
       <td><span class="tag ${l.eventCancelled?'cancelled':l.status}">${l.eventCancelled?'cancelled':l.status}</span></td>
-    </tr>`).join('');
-  $('logList').innerHTML=`<table><thead><tr><th>When</th><th>Family</th><th>Event</th><th>Role</th><th>Volunteer</th><th>Cr</th><th>Status</th></tr></thead><tbody>${body}</tbody></table>`;
+      <td style="text-align:right;white-space:nowrap">${action}</td>
+    </tr>`;
+  }).join('');
+  $('logList').innerHTML=`<table><thead><tr><th>When</th><th>Family</th><th>Event</th><th>Role</th><th>Volunteer</th><th>Cr</th><th>Status</th><th></th></tr></thead><tbody>${body}</tbody></table>`;
+  $('logList').querySelectorAll('button[data-rel]').forEach(b=>b.addEventListener('click',()=>{ if(confirm('Release this spot? It reopens on the volunteer list and any credits stop counting.')) decide(b.dataset.rel,'released',b); }));
+  $('logList').querySelectorAll('button[data-rest]').forEach(b=>b.addEventListener('click',()=>decide(b.dataset.rest,'pending',b)));
 }
 function fmtTs(iso){ if(!iso) return ''; const d=new Date(iso); return isNaN(d)?iso:d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}); }
 

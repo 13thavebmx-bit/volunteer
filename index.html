@@ -214,6 +214,11 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
       <button class="btn primary" id="submit" disabled>
         <svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 6"/></svg> <span id="submitLabel">Sign up</span>
       </button>
+
+      <p style="text-align:center;font-size:13px;color:var(--muted);margin-top:14px">
+        Signed up but can't make it, or need a change?<br>
+        <a id="changeLink" href="#" style="color:var(--teal);font-weight:700;text-decoration:none">Email the volunteer coordinator</a>
+      </p>
     </div>
 
     <div class="loading" id="loading">
@@ -235,7 +240,7 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
    This is the only line you ever change in this file.
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
-const APP_VERSION = '2026.06.19-15';
+const APP_VERSION = '2026.06.19-17';
 
 /* ---- State ---- */
 let SETTINGS = {bondCredits:10, seasonLabel:'', seasonWindow:'', bondNote:''};
@@ -462,6 +467,19 @@ function bindEvents(){
   $('family').addEventListener('change', e=>{ $('clubWrap').style.display = e.target.value==='GUEST'?'block':'none'; showProgress(e.target.value); refreshSubmit(); });
   $('club').addEventListener('change', ()=>{ $('clubOther').style.display = $('club').value==='__other'?'block':'none'; refreshSubmit(); });
   $('clubOther').addEventListener('input', refreshSubmit);
+  $('changeLink').addEventListener('click', e=>{
+    e.preventDefault();
+    const fid=$('family').value;
+    const fam = fid==='GUEST' ? ('Guest'+(clubValue()?(' — '+clubValue()):'')) : ((FAMILIES.find(f=>String(f.familyId)===String(fid))||{}).surname||'');
+    const ev = CUR_EVENT ? (CUR_EVENT.name+(CUR_EVENT.date?(' ('+CUR_EVENT.date+')'):'')) : '';
+    const body='Hi 13th Ave volunteer coordinator,\n\nI need to change or cancel a volunteer shift.\n\n'
+      +'Name: '+$('vol').value.trim()+'\n'
+      +'Family / club: '+fam+'\n'
+      +'Event: '+ev+'\n'
+      +'Role / time: \n'
+      +'What needs to change: \n\nThanks!';
+    window.location.href='mailto:volunteers@13thavebmx.com?subject='+encodeURIComponent('Volunteer shift change request')+'&body='+encodeURIComponent(body);
+  });
   $('vol').addEventListener('input', refreshSubmit);
   $('event').addEventListener('change', onEventChange);
   $('submit').addEventListener('click', submitShift);
