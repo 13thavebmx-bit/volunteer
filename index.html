@@ -224,7 +224,7 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
    This is the only line you ever change in this file.
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
-const APP_VERSION = '2026.06.19-12';
+const APP_VERSION = '2026.06.19-13';
 
 /* ---- State ---- */
 let SETTINGS = {bondCredits:10, seasonLabel:'', seasonWindow:'', bondNote:''};
@@ -295,18 +295,26 @@ function inThisWeek_(dateStr){
   const [mon,sun]=weekRange_();
   return d>=mon && d<=sun;
 }
+function notPast_(dateStr){
+  if(!dateStr) return true;
+  const p=String(dateStr).split('-'); if(p.length<3) return true;
+  const d=new Date(+p[0],+p[1]-1,+p[2]);
+  const today=new Date(); today.setHours(0,0,0,0);
+  return d>=today;
+}
 function evLabel_(s){ if(!s) return ''; const p=String(s).split('-'); if(p.length<3) return ' — '+s; const d=new Date(+p[0],+p[1]-1,+p[2]); return isNaN(d)?(' — '+s):(' — '+d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})); }
 function renderEvents(){
   const sel=$('event');
-  const wk=EVENTS.filter(e=>e.status!=='cancelled' && inThisWeek_(e.date))
+  // This week's events, plus any flagged "early signup" event that hasn't happened yet.
+  const wk=EVENTS.filter(e=>e.status!=='cancelled' && (inThisWeek_(e.date) || (e.featured && notPast_(e.date))))
                  .sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
   if(!wk.length){
-    sel.innerHTML='<option value="">No events scheduled this week</option>';
+    sel.innerHTML='<option value="">No events open for signup right now</option>';
     sel.disabled=true; return;
   }
   sel.disabled=false;
   sel.innerHTML='<option value="">Select an event…</option>'+
-    wk.map(e=>`<option value="${e.eventId}">${esc(e.name)}${evLabel_(e.date)}</option>`).join('');
+    wk.map(e=>{ const early=e.featured && !inThisWeek_(e.date); return `<option value="${e.eventId}">${early?'★ ':''}${esc(e.name)}${evLabel_(e.date)}</option>`; }).join('');
 }
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 

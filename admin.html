@@ -294,6 +294,10 @@ tr:last-child td{border-bottom:none}
         </div>
 
         <div class="field"><label>Notes (optional)</label><input type="text" id="evNotes" placeholder="e.g. Sask Cup Race 1"></div>
+        <label style="display:flex;align-items:flex-start;gap:9px;margin:2px 0 14px;font-size:13px;font-weight:600;color:var(--ink);text-transform:none;letter-spacing:0;cursor:pointer">
+          <input type="checkbox" id="evFeatured" style="width:auto;margin:2px 0 0">
+          <span>Open signups early <span style="font-weight:400;color:var(--muted)">— show this event on the volunteer page now, even if it's beyond the current week. Use for big events like provincials so people can plan ahead.</span></span>
+        </label>
         <div class="field"><label>Roles &amp; credits</label>
           <div class="roles-edit" id="rolesEdit"></div>
           <button class="btn sm ghost" id="addRoleBtn">+ Add role</button>
@@ -354,7 +358,7 @@ tr:last-child td{border-bottom:none}
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
 const PW  = '13thAveVol';   // ← change this to your coordinator password
-const APP_VERSION = '2026.06.19-12';   // version of THIS admin page (GitHub)
+const APP_VERSION = '2026.06.19-13';   // version of THIS admin page (GitHub)
 let LIVE_VERSION = null;              // version reported by the deployed backend
 
 /* Roles pre-filled on every new event. First Aid and Track Safety are always
@@ -681,6 +685,7 @@ function startEdit(id){
   $('weeklyWrap').style.display='none'; $('onceWrap').style.display='block';
   $('evDate').value=e.date||'';
   $('evNotes').value=e.notes||'';
+  $('evFeatured').checked=!!e.featured;
   ROLES_DRAFT=(e.roles||[]).map(r=>({role:r.role,slot:r.slot||'',spots:r.spots||0,credits:r.credits||0}));
   renderRolesEdit();
   $('addEvBtn').textContent='Save changes';
@@ -694,7 +699,7 @@ function exitEdit(){
   $('weeklyWrap').style.display='none'; $('onceWrap').style.display='block';
   $('addEvBtn').textContent='Add event';
   $('cancelEdit').style.display='none';
-  $('evName').value=''; $('evNotes').value=''; $('evDate').value='';
+  $('evName').value=''; $('evNotes').value=''; $('evDate').value=''; $('evFeatured').checked=false;
   resetTypeOther();
   loadTemplate();
 }
@@ -773,7 +778,7 @@ function renderEvents(){
     }).join('  ·  ');
     const cancelled=e.status==='cancelled';
     return `<tr class="${cancelled?'ev-cancelled':''}">
-      <td><b>${esc(e.name)}</b>${cancelled?' <span class="tag cancelled">Cancelled</span>':''}
+      <td><b>${esc(e.name)}</b>${cancelled?' <span class="tag cancelled">Cancelled</span>':''}${e.featured?' <span class="tag" style="background:var(--teal-tint,#E8F6FA);color:var(--teal,#0098B8)">★ Early signup</span>':''}
         <div style="font-size:11.5px;color:var(--muted)">${esc(e.type)}${e.date?' · '+fmtDate_(e.date):''}${e.notes?' · '+esc(e.notes):''}</div>
         <div style="font-size:11.5px;color:var(--muted-soft);margin-top:3px">${roleStr}</div></td>
       <td style="text-align:right;vertical-align:top;white-space:nowrap">
@@ -802,10 +807,11 @@ async function addEv(){
   if($('evType').value==='__other' && !$('evTypeOther').value.trim()){ toast('Enter the custom event type','err'); return; }
   if(!ROLES_DRAFT.length){ toast('Add at least one role','err'); return; }
   const type=eventTypeValue();
+  const featured=$('evFeatured').checked;
   $('addEvBtn').disabled=true;
   try{
     if(EDIT_ID){
-      EVENTS=await apiPost('updateEvent',{eventId:EDIT_ID,event:{name,type,date:$('evDate').value,notes:$('evNotes').value,roles:ROLES_DRAFT}});
+      EVENTS=await apiPost('updateEvent',{eventId:EDIT_ID,event:{name,type,date:$('evDate').value,notes:$('evNotes').value,roles:ROLES_DRAFT,featured}});
       toast('Changes saved','ok');
       exitEdit();
       renderAll();
@@ -816,13 +822,13 @@ async function addEv(){
       EVENTS=res.events;
       toast(`Created ${res.created} events`,'ok');
       $('evStart').value=''; $('evEnd').value=''; document.querySelectorAll('#dowPick .dow').forEach(b=>b.classList.remove('on'));
-      $('evName').value=''; $('evNotes').value=''; resetTypeOther(); loadTemplate();
+      $('evName').value=''; $('evNotes').value=''; $('evFeatured').checked=false; resetTypeOther(); loadTemplate();
       renderAll();
     } else {
-      EVENTS=await apiPost('addEvent',{event:{name,type,date:$('evDate').value,notes:$('evNotes').value,roles:ROLES_DRAFT}});
+      EVENTS=await apiPost('addEvent',{event:{name,type,date:$('evDate').value,notes:$('evNotes').value,roles:ROLES_DRAFT,featured}});
       toast('Event added','ok');
       $('evDate').value='';
-      $('evName').value=''; $('evNotes').value=''; resetTypeOther(); loadTemplate();
+      $('evName').value=''; $('evNotes').value=''; $('evFeatured').checked=false; resetTypeOther(); loadTemplate();
       renderAll();
     }
   }catch(err){ toast(err.message,'err'); }
