@@ -345,7 +345,7 @@ tr:last-child td{border-bottom:none}
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
 const PW  = '13thAveVol';   // ← change this to your coordinator password
-const APP_VERSION = '2026.06.19-10';   // version of THIS admin page (GitHub)
+const APP_VERSION = '2026.06.19-11';   // version of THIS admin page (GitHub)
 let LIVE_VERSION = null;              // version reported by the deployed backend
 
 /* Roles pre-filled on every new event. First Aid and Track Safety are always
@@ -677,6 +677,9 @@ function renderPresetOptions(){
 // Selecting a preset sets the type AND drops in its roles, both editable after.
 function applyPreset(name){
   $('delPresetBtn').style.display = name?'inline-flex':'none';
+  // A preset is a fresh starting point — presets never store a date, so clear any
+  // leftover date/range from the previous event instead of reusing it.
+  $('evDate').value=''; $('evStart').value=''; $('evEnd').value='';
   if(!name){ loadTemplate(); return; }
   const p=PRESETS.find(x=>x.name===name); if(!p) return;
   setTypeField(p.type||'');
