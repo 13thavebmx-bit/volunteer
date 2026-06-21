@@ -125,6 +125,15 @@ tr:last-child td{border-bottom:none}
 .r-numwrap>span{font-size:9.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;text-align:center;line-height:1}
 .r-sub input.r-num{width:100%;flex:none;text-align:center}
 .role-del{flex:0 0 32px;background:var(--bad-tint);color:var(--bad);border:none;border-radius:6px;cursor:pointer;font-size:16px;line-height:1;height:34px}
+.r-head{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.r-head .r-name{flex:1;margin-bottom:0}
+.r-grip{cursor:grab;color:var(--muted);font-size:15px;line-height:1;user-select:none;padding:0 3px;flex:0 0 auto;touch-action:none}
+.r-grip:active{cursor:grabbing}
+.r-move{flex:0 0 28px;height:32px;border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer;color:var(--muted);font-size:13px;line-height:1;padding:0}
+.r-move:hover:not(:disabled){background:var(--line-soft);color:var(--ink)}
+.r-move:disabled{opacity:.3;cursor:default}
+.role-row.dragging{opacity:.45}
+.role-row.drag-over{border-top:2px solid var(--teal);padding-top:8px}
 .x{background:none;border:none;color:var(--muted-soft);cursor:pointer;font-size:18px;padding:2px 6px;border-radius:6px}
 .x:hover{background:var(--bad-tint);color:var(--bad)}
 
@@ -345,7 +354,7 @@ tr:last-child td{border-bottom:none}
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
 const PW  = '13thAveVol';   // ← change this to your coordinator password
-const APP_VERSION = '2026.06.19-11';   // version of THIS admin page (GitHub)
+const APP_VERSION = '2026.06.19-12';   // version of THIS admin page (GitHub)
 let LIVE_VERSION = null;              // version reported by the deployed backend
 
 /* Roles pre-filled on every new event. First Aid and Track Safety are always
@@ -605,9 +614,15 @@ async function removeFam(id,btn){
 let ROLES_DRAFT=[];
 let EDIT_ID=null; // when set, the Events form is editing this event instead of adding
 function renderRolesEdit(){
+  const n=ROLES_DRAFT.length;
   $('rolesEdit').innerHTML = ROLES_DRAFT.map((r,i)=>`
-    <div class="role-row">
-      <input type="text" class="r-name" value="${esc(r.role)}" data-i="${i}" data-k="role" placeholder="Role (e.g. Registration check-in)">
+    <div class="role-row" data-row="${i}">
+      <div class="r-head">
+        <span class="r-grip" data-grip="${i}" draggable="true" title="Drag to reorder">⠿</span>
+        <input type="text" class="r-name" value="${esc(r.role)}" data-i="${i}" data-k="role" placeholder="Role (e.g. Registration check-in)">
+        <button type="button" class="r-move" data-up="${i}" title="Move up" ${i===0?'disabled':''}>↑</button>
+        <button type="button" class="r-move" data-down="${i}" title="Move down" ${i===n-1?'disabled':''}>↓</button>
+      </div>
       <div class="r-sub">
         <input type="text" value="${esc(r.slot||'')}" data-i="${i}" data-k="slot" placeholder="Time (optional)">
         <div class="r-numwrap"><span>Needed</span><input type="number" class="r-num" value="${(r.spots===''||r.spots==null)?'':r.spots}" data-i="${i}" data-k="spots" min="0" placeholder="" title="People needed for this role (blank or 0 = no limit)"></div>
@@ -615,10 +630,40 @@ function renderRolesEdit(){
         <button class="role-del" data-del="${i}">&times;</button>
       </div>
     </div>`).join('') || '<p class="sub">No roles yet — add at least one.</p>';
-  $('rolesEdit').querySelectorAll('input').forEach(inp=>{
+  const wrap=$('rolesEdit');
+  wrap.querySelectorAll('input').forEach(inp=>{
     inp.addEventListener('input',()=>{ const i=+inp.dataset.i,k=inp.dataset.k; ROLES_DRAFT[i][k]= (k==='credits'||k==='spots')?(+inp.value||0):inp.value; });
   });
-  $('rolesEdit').querySelectorAll('button[data-del]').forEach(b=>b.addEventListener('click',()=>{ ROLES_DRAFT.splice(+b.dataset.del,1); renderRolesEdit(); }));
+  wrap.querySelectorAll('button[data-del]').forEach(b=>b.addEventListener('click',()=>{ ROLES_DRAFT.splice(+b.dataset.del,1); renderRolesEdit(); }));
+  wrap.querySelectorAll('button[data-up]').forEach(b=>b.addEventListener('click',()=>moveRole(+b.dataset.up,-1)));
+  wrap.querySelectorAll('button[data-down]').forEach(b=>b.addEventListener('click',()=>moveRole(+b.dataset.down,1)));
+  bindRoleDrag(wrap);
+}
+// Swap a role with its neighbour (↑/↓ buttons — precise, works on any device).
+function moveRole(i,dir){
+  const j=i+dir;
+  if(j<0||j>=ROLES_DRAFT.length) return;
+  const t=ROLES_DRAFT[i]; ROLES_DRAFT[i]=ROLES_DRAFT[j]; ROLES_DRAFT[j]=t;
+  renderRolesEdit();
+}
+// Move a role from one position to another (drag handle — fast for long lists).
+function reorderRole(from,to){
+  if(from==null||from===to||from<0||to<0) return;
+  const item=ROLES_DRAFT.splice(from,1)[0];
+  ROLES_DRAFT.splice(to,0,item);
+  renderRolesEdit();
+}
+let DRAG_FROM=null;
+function bindRoleDrag(wrap){
+  wrap.querySelectorAll('.r-grip').forEach(g=>{
+    g.addEventListener('dragstart',e=>{ DRAG_FROM=+g.dataset.grip; e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain',String(DRAG_FROM));}catch(x){} const row=g.closest('.role-row'); if(row) row.classList.add('dragging'); });
+    g.addEventListener('dragend',()=>{ DRAG_FROM=null; wrap.querySelectorAll('.role-row').forEach(r=>r.classList.remove('dragging','drag-over')); });
+  });
+  wrap.querySelectorAll('.role-row').forEach(row=>{
+    row.addEventListener('dragover',e=>{ if(DRAG_FROM===null) return; e.preventDefault(); e.dataTransfer.dropEffect='move'; row.classList.add('drag-over'); });
+    row.addEventListener('dragleave',()=>row.classList.remove('drag-over'));
+    row.addEventListener('drop',e=>{ e.preventDefault(); if(DRAG_FROM===null) return; reorderRole(DRAG_FROM,+row.dataset.row); });
+  });
 }
 function loadTemplate(){
   if(EDIT_ID) return; // don't overwrite roles while editing an existing event
