@@ -207,6 +207,19 @@ tr:last-child td{border-bottom:none}
         </div>
       </div>
     </div>
+    <div class="card">
+      <div class="card-head">Import past shifts <span style="font-weight:400;color:var(--muted);font-size:11.5px">— bulk add from a CSV, skips the spot cap</span></div>
+      <div style="padding:12px 14px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+          <input type="file" id="impFile" accept=".csv,text/csv" style="flex:1;min-width:150px;font-size:13px">
+          <a href="#" id="impTemplate" style="font-size:12.5px;color:var(--teal);font-weight:600;text-decoration:none;white-space:nowrap">Download CSV template ↓</a>
+        </div>
+        <textarea id="impText" placeholder="…or paste rows here. Columns: Family, Event, Date, Role, Volunteer, Credits&#10;Leave Credits blank to use the event's default. Date helps when an event name repeats." style="width:100%;height:96px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-family:var(--font);font-size:13px;resize:vertical"></textarea>
+        <label style="display:flex;align-items:center;gap:8px;margin:10px 0;font-size:13px;font-weight:600;color:var(--ink);text-transform:none;letter-spacing:0"><input type="checkbox" id="impApproved" checked style="width:auto;margin:0"> Mark as approved (these shifts already happened)</label>
+        <button class="btn primary" id="impBtn">Import shifts</button>
+        <div id="impResult" style="margin-top:10px;font-size:12.5px;line-height:1.55"></div>
+      </div>
+    </div>
     <div class="card"><div id="approvals"></div></div>
   </div>
 
@@ -333,7 +346,7 @@ tr:last-child td{border-bottom:none}
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
 const PW  = '13thAveVol';   // ← change this to your coordinator password
-const APP_VERSION = '2026.06.19-8';   // version of THIS admin page (GitHub)
+const APP_VERSION = '2026.06.19-9';   // version of THIS admin page (GitHub)
 let LIVE_VERSION = null;              // version reported by the deployed backend
 
 /* Roles pre-filled on every new event. First Aid and Track Safety are always
@@ -475,6 +488,60 @@ async function manualAdd(){
     renderAll(); toast('Shift added — pending approval','ok');
   }catch(err){ toast(err.message,'err'); }
   $('mAddBtn').disabled=false;
+}
+
+/* ---- Bulk import (past shifts) ---- */
+function splitCsvLine(line){
+  const out=[]; let cur='', q=false;
+  for(let i=0;i<line.length;i++){ const c=line[i];
+    if(q){ if(c==='"'){ if(line[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=c; }
+    else { if(c==='"') q=true; else if(c===','){ out.push(cur); cur=''; } else cur+=c; }
+  }
+  out.push(cur); return out.map(s=>s.trim());
+}
+function parseCsvGrid(text){
+  return text.replace(/\r\n?/g,'\n').split('\n').filter(l=>l.trim().length).map(splitCsvLine);
+}
+function downloadTemplate(){
+  downloadCsv('volunteer-import-template.csv',[
+    ['Family','Event','Date','Role','Volunteer','Credits'],
+    ['Fellner','Club Race','2026-06-05','Gate starter','Bryan Fellner','1'],
+    ['MacDonald','Club Race','2026-06-05','Track marshal','Angus MacDonald','']
+  ]);
+}
+async function importCsv(){
+  const text=$('impText').value.trim();
+  if(!text){ toast('Choose a file or paste rows first','err'); return; }
+  const grid=parseCsvGrid(text);
+  if(grid.length<2){ toast('Need a header row plus at least one data row','err'); return; }
+  const header=grid[0].map(h=>h.toLowerCase());
+  const idx=n=>header.indexOf(n);
+  for(const n of ['family','event','role','volunteer']){
+    if(idx(n)<0){ toast('Missing column: '+n+' (use the template)','err'); return; }
+  }
+  const di=idx('date'), ci=idx('credits');
+  const rows=grid.slice(1).map((cols,k)=>({
+    _line:k+2,
+    family:cols[idx('family')]||'', event:cols[idx('event')]||'',
+    date:di>=0?(cols[di]||''):'', role:cols[idx('role')]||'',
+    volunteer:cols[idx('volunteer')]||'', credits:ci>=0?(cols[ci]||''):''
+  }));
+  const status=$('impApproved').checked?'approved':'pending';
+  $('impBtn').disabled=true;
+  try{
+    const res=await apiPost('importShifts',{rows,status});
+    EVENTS=await apiGet('getEvents'); LOG=await apiGet('getLog'); FAMILIES=await apiGet('getFamilies');
+    renderAll();
+    toast(`Imported ${res.imported} shift${res.imported===1?'':'s'}`+(res.errors.length?` · ${res.errors.length} skipped`:''), res.errors.length?'':'ok');
+    if(res.errors.length){
+      $('impResult').innerHTML='<b style="color:var(--bad)">Skipped '+res.errors.length+' row'+(res.errors.length===1?'':'s')+' — fix and re-import just these:</b><br>'+
+        res.errors.map(e=>`Line ${e.line}: ${esc(e.message)}`).join('<br>');
+    } else {
+      $('impResult').innerHTML='<b style="color:var(--ok)">All '+res.imported+' imported.</b>';
+      $('impText').value=''; $('impFile').value='';
+    }
+  }catch(err){ toast(err.message,'err'); $('impResult').textContent=''; }
+  $('impBtn').disabled=false;
 }
 async function decide(logId,status,btn){
   btn.disabled=true;
@@ -765,6 +832,9 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>show
 $('addFamBtn').addEventListener('click',addFam);
 $('mEvent').addEventListener('change',mRoleOptions);
 $('mAddBtn').addEventListener('click',manualAdd);
+$('impBtn').addEventListener('click',importCsv);
+$('impTemplate').addEventListener('click',e=>{e.preventDefault();downloadTemplate();});
+$('impFile').addEventListener('change',e=>{ const f=e.target.files[0]; if(!f) return; const rd=new FileReader(); rd.onload=()=>{ $('impText').value=rd.result; }; rd.readAsText(f); });
 $('newFam').addEventListener('keydown',e=>{if(e.key==='Enter')addFam();});
 $('evType').addEventListener('change',()=>{ $('evTypeOther').style.display = $('evType').value==='__other'?'block':'none'; loadTemplate(); });
 $('evRepeat').addEventListener('change',()=>{
