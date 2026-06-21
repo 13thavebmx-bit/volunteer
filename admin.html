@@ -307,6 +307,10 @@ tr:last-child td{border-bottom:none}
           <input type="checkbox" id="evFeatured" style="width:auto;margin:2px 0 0">
           <span>Open signups early <span style="font-weight:400;color:var(--muted)">— show this event on the volunteer page now, even if it's beyond the current week. Use for big events like provincials so people can plan ahead.</span></span>
         </label>
+        <label style="display:flex;align-items:flex-start;gap:9px;margin:2px 0 14px;font-size:13px;font-weight:600;color:var(--ink);text-transform:none;letter-spacing:0;cursor:pointer">
+          <input type="checkbox" id="evPlan" style="width:auto;margin:2px 0 0">
+          <span>Needs event planning <span style="font-weight:400;color:var(--muted)">— flag this for the Events Coordinator (provincials, major track maintenance, etc.) so it shows up there for a task plan.</span></span>
+        </label>
         <div class="field"><label>Roles &amp; credits</label>
           <div class="roles-edit" id="rolesEdit"></div>
           <button class="btn sm ghost" id="addRoleBtn">+ Add role</button>
@@ -398,6 +402,7 @@ tr:last-child td{border-bottom:none}
         <li><b>Reorder roles</b> by dragging the grip handle (⠿), or the ↑/↓ buttons — handy for big events organized by time slot.</li>
         <li><b>Repeats → Weekly</b> generates an event on chosen weekdays across a date range (e.g. every Tue/Thu practice all summer).</li>
         <li><b>Open signups early</b> puts a big event (like a provincial) on the volunteer page right away, even weeks out, so people can plan ahead. It shows with a ★.</li>
+        <li><b>Needs event planning</b> flags a big event (provincial, major track maintenance) for the separate Events Coordinator app, where you build its task plan. It shows a "Plan needed" badge here.</li>
         <li><b>Edit</b> any event later; existing signups are never changed by an edit.</li>
       </ul>
       <h3 style="margin-top:14px">Presets — set big events up once</h3>
@@ -450,7 +455,7 @@ tr:last-child td{border-bottom:none}
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
 const PW  = '13thAveVol';   // ← change this to your coordinator password
-const APP_VERSION = '2026.06.19-17';   // version of THIS admin page (GitHub)
+const APP_VERSION = '2026.06.19-18';   // version of THIS admin page (GitHub)
 let LIVE_VERSION = null;              // version reported by the deployed backend
 
 /* Roles pre-filled on every new event. First Aid and Track Safety are always
@@ -780,6 +785,7 @@ function startEdit(id){
   $('evDate').value=e.date||'';
   $('evNotes').value=e.notes||'';
   $('evFeatured').checked=!!e.featured;
+  $('evPlan').checked=!!e.planNeeded;
   ROLES_DRAFT=(e.roles||[]).map(r=>({role:r.role,slot:r.slot||'',spots:r.spots||0,credits:r.credits||0}));
   renderRolesEdit();
   $('addEvBtn').textContent='Save changes';
@@ -793,7 +799,7 @@ function exitEdit(){
   $('weeklyWrap').style.display='none'; $('onceWrap').style.display='block';
   $('addEvBtn').textContent='Add event';
   $('cancelEdit').style.display='none';
-  $('evName').value=''; $('evNotes').value=''; $('evDate').value=''; $('evFeatured').checked=false;
+  $('evName').value=''; $('evNotes').value=''; $('evDate').value=''; $('evFeatured').checked=false; $('evPlan').checked=false;
   resetTypeOther();
   loadTemplate();
 }
@@ -872,7 +878,7 @@ function renderEvents(){
     }).join('  ·  ');
     const cancelled=e.status==='cancelled';
     return `<tr class="${cancelled?'ev-cancelled':''}">
-      <td><b>${esc(e.name)}</b>${cancelled?' <span class="tag cancelled">Cancelled</span>':''}${e.featured?' <span class="tag" style="background:var(--teal-tint,#E8F6FA);color:var(--teal,#0098B8)">★ Early signup</span>':''}
+      <td><b>${esc(e.name)}</b>${cancelled?' <span class="tag cancelled">Cancelled</span>':''}${e.featured?' <span class="tag" style="background:var(--teal-tint,#E8F6FA);color:var(--teal,#0098B8)">★ Early signup</span>':''}${e.planNeeded?' <span class="tag" style="background:#FBEEDF;color:#9A6700">Plan needed</span>':''}
         <div style="font-size:11.5px;color:var(--muted)">${esc(e.type)}${e.date?' · '+fmtDate_(e.date):''}${e.notes?' · '+esc(e.notes):''}</div>
         <div style="font-size:11.5px;color:var(--muted-soft);margin-top:3px">${roleStr}</div></td>
       <td style="text-align:right;vertical-align:top;white-space:nowrap">
@@ -902,10 +908,11 @@ async function addEv(){
   if(!ROLES_DRAFT.length){ toast('Add at least one role','err'); return; }
   const type=eventTypeValue();
   const featured=$('evFeatured').checked;
+  const planNeeded=$('evPlan').checked;
   $('addEvBtn').disabled=true;
   try{
     if(EDIT_ID){
-      EVENTS=await apiPost('updateEvent',{eventId:EDIT_ID,event:{name,type,date:$('evDate').value,notes:$('evNotes').value,roles:ROLES_DRAFT,featured}});
+      EVENTS=await apiPost('updateEvent',{eventId:EDIT_ID,event:{name,type,date:$('evDate').value,notes:$('evNotes').value,roles:ROLES_DRAFT,featured,planNeeded}});
       toast('Changes saved','ok');
       exitEdit();
       renderAll();
@@ -916,13 +923,13 @@ async function addEv(){
       EVENTS=res.events;
       toast(`Created ${res.created} events`,'ok');
       $('evStart').value=''; $('evEnd').value=''; document.querySelectorAll('#dowPick .dow').forEach(b=>b.classList.remove('on'));
-      $('evName').value=''; $('evNotes').value=''; $('evFeatured').checked=false; resetTypeOther(); loadTemplate();
+      $('evName').value=''; $('evNotes').value=''; $('evFeatured').checked=false; $('evPlan').checked=false; resetTypeOther(); loadTemplate();
       renderAll();
     } else {
-      EVENTS=await apiPost('addEvent',{event:{name,type,date:$('evDate').value,notes:$('evNotes').value,roles:ROLES_DRAFT,featured}});
+      EVENTS=await apiPost('addEvent',{event:{name,type,date:$('evDate').value,notes:$('evNotes').value,roles:ROLES_DRAFT,featured,planNeeded}});
       toast('Event added','ok');
       $('evDate').value='';
-      $('evName').value=''; $('evNotes').value=''; $('evFeatured').checked=false; resetTypeOther(); loadTemplate();
+      $('evName').value=''; $('evNotes').value=''; $('evFeatured').checked=false; $('evPlan').checked=false; resetTypeOther(); loadTemplate();
       renderAll();
     }
   }catch(err){ toast(err.message,'err'); }
