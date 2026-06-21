@@ -177,6 +177,17 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
       <label for="family">Family name</label>
       <select id="family"><option value="">Select your family…</option></select>
 
+      <div id="clubWrap" style="display:none">
+        <label for="club">Your club</label>
+        <select id="club">
+          <option value="">Select your club…</option>
+          <option value="Globe BMX">Globe BMX</option>
+          <option value="Warman BMX">Warman BMX</option>
+          <option value="__other">Other (specify)…</option>
+        </select>
+        <input type="text" id="clubOther" placeholder="Club name" autocomplete="off" style="display:none;margin-top:8px">
+      </div>
+
       <label for="vol">Volunteer name</label>
       <input type="text" id="vol" placeholder="Who's doing the shift(s)?" autocomplete="off">
 
@@ -224,7 +235,7 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
    This is the only line you ever change in this file.
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
-const APP_VERSION = '2026.06.19-13';
+const APP_VERSION = '2026.06.19-15';
 
 /* ---- State ---- */
 let SETTINGS = {bondCredits:10, seasonLabel:'', seasonWindow:'', bondNote:''};
@@ -279,8 +290,11 @@ function renderSeasonBar(){
 }
 function renderFamilies(){
   const sel=$('family');
-  sel.innerHTML='<option value="">Select your family…</option>'+
-    FAMILIES.map(f=>`<option value="${f.familyId}">${esc(f.surname)}</option>`).join('');
+  sel.innerHTML='<option value="">Select your family…</option>'
+    +'<option value="GUEST">Volunteer from another club (guest)</option>'
+    +'<optgroup label="Club families">'
+    +FAMILIES.map(f=>`<option value="${f.familyId}">${esc(f.surname)}</option>`).join('')
+    +'</optgroup>';
 }
 function weekRange_(){
   const now=new Date(); const g=now.getDay(); // 0 Sun..6 Sat
@@ -384,12 +398,19 @@ function renderRoleList(){
   });
 }
 
+function clubValue(){ return $('club').value==='__other' ? $('clubOther').value.trim() : $('club').value; }
 function refreshSubmit(){
+  const fid=$('family').value;
+  const isGuest = fid==='GUEST';
   const isPractice = CUR_EVENT && /practice/i.test(CUR_EVENT.type||'');
   const hasName = $('vol').value.trim().length>0;
-  const ok = $('family').value && CUR_EVENT && SEL.size>0 && hasName && (!isPractice || SESSION);
+  const hasClub = !isGuest || clubValue().length>0;
+  const ok = fid && CUR_EVENT && SEL.size>0 && hasName && hasClub && (!isPractice || SESSION);
   $('submit').disabled = !ok;
-  if(ok){
+  if(ok && isGuest){
+    const n=SEL.size;
+    $('submitLabel').textContent = `Sign up for ${n} ${n===1?'spot':'spots'} (guest — no credits)`;
+  } else if(ok){
     let c=0; SEL.forEach(i=>{ c+=spotCredits(CUR_EVENT.roles[i]); });
     const n=SEL.size;
     $('submitLabel').textContent = `Sign up for ${n} ${n===1?'spot':'spots'} — ${c} ${c===1?'credit':'credits'} (pending)`;
@@ -400,19 +421,24 @@ function refreshSubmit(){
 
 async function submitShift(){
   const fid=$('family').value;
+  const isGuest = fid==='GUEST';
   const vol=$('vol').value.trim();
   if(!vol){ toast('Enter the volunteer’s name','err'); return; }
+  const club=clubValue();
+  if(isGuest && !club){ toast('Pick or enter your club','err'); return; }
   const spots=[...SEL].map(i=>{ const r=CUR_EVENT.roles[i]; return {role:r.role, slot:r.slot||'', credits:spotCredits(r)}; });
   if(!spots.length){ toast('Pick at least one spot','err'); return; }
   $('submit').disabled=true;
   try{
     const res = await apiPost('logVolunteers', {entry:{
-      familyId:fid, eventId:CUR_EVENT.eventId, eventName:CUR_EVENT.name,
+      familyId:fid, guest:isGuest, club:club, eventId:CUR_EVENT.eventId, eventName:CUR_EVENT.name,
       session:SESSION, volunteer:vol
     }, spots:spots});
     if(res.errors && res.errors.length){
       const part = res.logged ? `Signed up for ${res.logged} — ` : '';
       toast(`${part}${res.errors.length} just filled up`, res.logged?'':'err');
+    } else if(isGuest){
+      toast(`Thanks! Signed up for ${res.logged} ${res.logged===1?'spot':'spots'} — ${club} noted`, 'ok');
     } else {
       toast(`Signed up for ${res.logged} ${res.logged===1?'spot':'spots'} — ${res.credits} ${res.credits===1?'credit':'credits'} pending`, 'ok');
     }
@@ -421,7 +447,7 @@ async function submitShift(){
     FAMILIES = await apiGet('getFamilies');
     showProgress(fid);
     renderEvents();
-    SEL.clear(); $('vol').value='';
+    SEL.clear(); $('vol').value=''; $('club').value=''; $('clubOther').value=''; $('clubOther').style.display='none';
     $('event').value=''; onEventChange();
   }catch(err){
     // a full-spot race or other error: refresh counts so the list reflects reality
@@ -433,7 +459,9 @@ async function submitShift(){
 
 /* ---- Wire up ---- */
 function bindEvents(){
-  $('family').addEventListener('change', e=>{ showProgress(e.target.value); refreshSubmit(); });
+  $('family').addEventListener('change', e=>{ $('clubWrap').style.display = e.target.value==='GUEST'?'block':'none'; showProgress(e.target.value); refreshSubmit(); });
+  $('club').addEventListener('change', ()=>{ $('clubOther').style.display = $('club').value==='__other'?'block':'none'; refreshSubmit(); });
+  $('clubOther').addEventListener('input', refreshSubmit);
   $('vol').addEventListener('input', refreshSubmit);
   $('event').addEventListener('change', onEventChange);
   $('submit').addEventListener('click', submitShift);
