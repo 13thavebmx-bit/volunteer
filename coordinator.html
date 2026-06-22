@@ -167,9 +167,9 @@ tr:last-child td{border-bottom:none}
 .tstat .dot{width:8px;height:8px;border-radius:50%}
 .tstat.s0{background:#fff;color:var(--muted)} .tstat.s0 .dot{background:var(--muted-soft)}
 .tstat.s1{background:var(--warn-tint);color:var(--warn)} .tstat.s1 .dot{background:var(--warn)}
-.tstat.s2{background:var(--teal-tint);color:var(--teal-dark)} .tstat.s2 .dot{background:var(--teal)}
-.tstat.s3{background:#EFE7FB;color:#6B3FA0} .tstat.s3 .dot{background:#6B3FA0}
-.tstat.s4{background:var(--ok-tint);color:var(--ok)} .tstat.s4 .dot{background:var(--ok)}
+.tstat.s2{background:var(--bad-tint);color:var(--bad)} .tstat.s2 .dot{background:var(--bad)}
+.tstat.s3{background:var(--ok-tint);color:var(--ok)} .tstat.s3 .dot{background:var(--ok)}
+.tstat.s4{background:#F1F1F1;color:#9AA0A6} .tstat.s4 .dot{background:#9AA0A6}
 .sec-group{margin-bottom:8px}
 .sec-title{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:14px 2px 7px}
 .sec-title .cnt{font-weight:700;color:var(--muted-soft)}
@@ -242,14 +242,14 @@ tr:last-child td{border-bottom:none}
         <div class="inline" style="gap:10px;flex-wrap:wrap">
           <div class="field" style="flex:1;min-width:140px"><label>Assignee</label><input id="tAssignee" placeholder="Who's on it" autocomplete="off"></div>
           <div class="field" style="flex:1;min-width:140px"><label>Section</label>
-            <input id="tSection" list="sectionList" placeholder="Pre-race / Race day / Teardown" autocomplete="off">
-            <datalist id="sectionList"><option value="Pre-race"><option value="Race day"><option value="Teardown"></datalist>
+            <input id="tSection" list="sectionList" placeholder="Pre-race / Race day / Post-race" autocomplete="off">
+            <datalist id="sectionList"><option value="Pre-race"><option value="Race day"><option value="Post-race"></datalist>
           </div>
         </div>
         <div class="inline" style="gap:10px;flex-wrap:wrap">
           <div class="field" style="flex:1;min-width:140px"><label>Due date</label><input id="tDue" type="date"></div>
           <div class="field" style="flex:1;min-width:140px"><label>Status</label>
-            <select id="tStatus"><option>Not started</option><option>In progress</option><option>Day of</option><option>Post race</option><option>Complete</option></select>
+            <select id="tStatus"><option>Not started</option><option>In process</option><option>Delayed</option><option>Complete</option><option>Canceled</option></select>
           </div>
         </div>
         <button class="vtoggle" id="vendorToggle" type="button">+ Vendor / contact</button>
@@ -290,7 +290,7 @@ tr:last-child td{border-bottom:none}
 </div>
 <div class="toast" id="toast"></div>
 <script>
-var API='https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec', PW='13thAveVol', APP_VERSION='2026.06.21-3', LIVE_VERSION=null;
+var API='https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec', PW='13thAveVol', APP_VERSION='2026.06.21-4', LIVE_VERSION=null;
 var EVENTS=[],TASKS=[],TEMPLATES=[],SEASON=null,curEvent='';
 
 async function apiGet(action, params){
@@ -313,18 +313,32 @@ function daysBetween(a,b){var pa=String(a).match(/^(\d{4})-(\d{2})-(\d{2})/),pb=
   if(!pa||!pb)return null; return Math.round((new Date(+pa[1],+pa[2]-1,+pa[3])-new Date(+pb[1],+pb[2]-1,+pb[3]))/86400000);}
 function fmtDue(s){var m=String(s).match(/^(\d{4})-(\d{2})-(\d{2})/);if(!m)return s;
   return new Date(+m[1],+m[2]-1,+m[3]).toLocaleDateString(undefined,{month:'short',day:'numeric'});}
-var STATUS=['Not started','In progress','Day of','Post race','Complete'];
-var SECTION_PREF=['Pre-race','Race day','Teardown'];
-// Auto-sort on open: completed sinks; the rest by due date (overdue/soonest first),
-// undated after dated; SortOrder as a stable tiebreak.
+var STATUS=['Not started','In process','Delayed','Complete','Canceled'];
+var SECTION_PREF=['Pre-race','Race day','Post-race'];
+function isClosed(s){return s==='Complete'||s==='Canceled';}  // closed states sink + strike
+// Auto-sort on open: closed (Complete/Canceled) sink; the rest by due date
+// (overdue/soonest first), undated after dated; SortOrder as a stable tiebreak.
 function taskSort(a,b){
-  var ac=a.status==='Complete',bc=b.status==='Complete';
+  var ac=isClosed(a.status),bc=isClosed(b.status);
   if(ac!==bc)return ac?1:-1;
   var ad=a.dueDate||'',bd=b.dueDate||'';
   if(ad&&bd){if(ad!==bd)return ad<bd?-1:1;}
   else if(ad&&!bd)return -1;
   else if(!ad&&bd)return 1;
   return (a.sortOrder||0)-(b.sortOrder||0);
+}
+// Progress ignores Canceled (they don't count against you).
+function progressOf(tasks){
+  var done=0,canceled=0,delayed=0;
+  tasks.forEach(function(t){
+    if(t.status==='Complete')done++;
+    else if(t.status==='Canceled')canceled++;
+    else if(t.status==='Delayed')delayed++;
+  });
+  var active=tasks.length-canceled;
+  var pct=active>0?Math.round(done/active*100):0;
+  var sub=done+' done \u00b7 '+(active-done)+' to do'+(delayed?' \u00b7 '+delayed+' delayed':'')+(canceled?' \u00b7 '+canceled+' canceled':'');
+  return {pct:pct,sub:sub};
 }
 function sectionOrder(tasks){var seen=[];tasks.forEach(function(t){var s=t.section||'General';if(seen.indexOf(s)<0)seen.push(s);});
   return seen.sort(function(a,b){var ia=SECTION_PREF.indexOf(a),ib=SECTION_PREF.indexOf(b);
@@ -363,12 +377,10 @@ function refresh(){
   $('planArea').style.display=curEvent?'block':'none';
   if(!curEvent)return;
   $('shareUrl').value=location.href.replace(/[^/]*$/,'')+'my-tasks.html?event='+encodeURIComponent(curEvent);
-  var tasks=eventTasks().slice().sort(function(a,b){return a.sortOrder-b.sortOrder;});
-  var done=tasks.filter(function(t){return t.status==='Complete';}).length;
-  var pct=tasks.length?Math.round(done/tasks.length*100):0;
-  $('progBar').style.width=pct+'%';$('progPct').textContent=pct+'%';
-  var inprog=tasks.filter(function(t){return t.status==='In progress';}).length;
-  $('progSub').textContent=tasks.length?(done+' done \u00b7 '+inprog+' in progress \u00b7 '+(tasks.length-done-inprog)+' to do'):'No tasks yet - add one or load a template';
+  var tasks=eventTasks();
+  var pr=progressOf(tasks);
+  $('progBar').style.width=pr.pct+'%';$('progPct').textContent=pr.pct+'%';
+  $('progSub').textContent=tasks.length?pr.sub:'No tasks yet - add one or load a template';
   renderList(tasks,$('taskList'));
 }
 async function loadTpl(){var name=$('tplPick').value; if(!name){toast('Pick a template first','err');return;}
@@ -433,7 +445,7 @@ function rowHtml(t){
   if(t.contactPhone) meta+='<a class="chip tap" href="tel:'+attr(t.contactPhone.replace(/[^0-9+]/g,''))+'"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.94.36 1.86.7 2.73a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.35-1.35a2 2 0 0 1 2.11-.45c.87.34 1.79.57 2.73.7A2 2 0 0 1 22 16.92z"/></svg>'+esc(t.contactPhone)+'</a>';
   if(t.contactEmail) meta+='<a class="chip tap" href="mailto:'+attr(t.contactEmail)+'"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg>Email</a>';
   if(t.dueDate) meta+='<span class="chip due'+(over?' over':'')+'">'+(over?'Due ':'')+fmtDue(t.dueDate)+'</span>';
-  return '<div class="tk'+(t.status==='Complete'?' done':'')+'">'
+  return '<div class="tk'+(isClosed(t.status)?' done':'')+'">'
     +'<button class="tstat s'+si+'" data-cycle="'+attr(t.taskId)+'"><span class="dot"></span>'+esc(t.status)+'</button>'
     +'<div class="tk-main"><div class="tk-title">'+esc(t.title)+'</div>'
       +(t.notes?'<div class="tk-detail">'+esc(t.notes)+'</div>':'')
@@ -448,7 +460,9 @@ function renderList(tasks,el){
   var html='';
   sectionOrder(tasks).forEach(function(sec){
     var inSec=tasks.filter(function(t){return (t.section||'General')===sec;}).sort(taskSort);
-    html+='<div class="sec-group"><div class="sec-title">'+esc(sec)+' <span class="cnt">'+inSec.filter(function(t){return t.status==='Complete';}).length+'/'+inSec.length+'</span></div>';
+    var sdone=inSec.filter(function(t){return t.status==='Complete';}).length;
+    var sact=inSec.filter(function(t){return t.status!=='Canceled';}).length;
+    html+='<div class="sec-group"><div class="sec-title">'+esc(sec)+' <span class="cnt">'+sdone+'/'+sact+'</span></div>';
     inSec.forEach(function(t){html+=rowHtml(t);});
     html+='</div>';
   });
