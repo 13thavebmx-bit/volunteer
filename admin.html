@@ -385,7 +385,7 @@ tr:last-child td{border-bottom:none}
 
     <div class="card guide"><div style="padding:14px">
       <h3>Approvals — the thing you'll do most</h3>
-      <p>Every shift a volunteer signs up for lands here as <b>pending</b>. For each one, hit the green check to <b>approve</b> (credits count) or the red X to <b>reject</b> (credits don't count, and the spot reopens). The Role column shows who volunteered.</p>
+      <p>Every shift a volunteer signs up for lands here as <b>pending</b>. For each one, hit the green check to <b>approve</b> (credits count) or the red X to <b>reject</b> (credits don't count, and the spot reopens). When you reject, you can jot an <b>optional reason</b> — it's saved on the entry, shows in the Full log, and lands in the CSV export, so there's a record if anyone asks later. (Hit Cancel on that box to back out of the reject.) The Role column shows who volunteered.</p>
       <p>There's also a <b>Release</b> button on each row: it frees the spot the same way Release spot does in the Full log, but without marking it rejected — handy for a duplicate signup you just want to clear. The spot reopens, it's logged as <b>Released</b>, and you can Restore it later from the Full log if needed.</p>
       <p><b>Add a shift manually:</b> if someone volunteered but didn't sign up online, use this — pick the family, event, volunteer name, and role. It ignores the spot limit, so it works for past events too.</p>
       <p><b>Import past shifts (CSV):</b> for backfilling a whole event at once. Download the template, fill it in, paste or upload it. Bad rows are skipped and listed back by line number so you can fix just those. Tick "Mark as approved" since they already happened.</p>
@@ -458,7 +458,7 @@ tr:last-child td{border-bottom:none}
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
 const PW  = '13thAveVol';   // ← change this to your coordinator password
-const APP_VERSION = '2026.06.19-18';   // version of THIS admin page (GitHub)
+const APP_VERSION = '2026.06.22-1';   // version of THIS admin page (GitHub)
 let LIVE_VERSION = null;              // version reported by the deployed backend
 
 /* Roles pre-filled on every new event. First Aid and Track Safety are always
@@ -659,11 +659,18 @@ async function importCsv(){
   }catch(err){ toast(err.message,'err'); $('impResult').textContent=''; }
   $('impBtn').disabled=false;
 }
-async function decide(logId,status,btn){
+async function decide(logId,status,btn,note){
+  if(status==='rejected' && note===undefined){
+    const reason=prompt('Reason for rejecting? (optional — leave blank to skip, Cancel to keep it pending)');
+    if(reason===null) return;            // Cancel = don't reject, leave it pending
+    note=reason.trim();
+  }
   btn.disabled=true;
   try{
-    await apiPost('updateEntryStatus',{logId,status});
-    const e=LOG.find(l=>String(l.logId)===String(logId)); if(e) e.status=status;
+    const payload={logId,status};
+    if(note!==undefined) payload.note=note;
+    await apiPost('updateEntryStatus',payload);
+    const e=LOG.find(l=>String(l.logId)===String(logId)); if(e){ e.status=status; if(note!==undefined) e.note=note; }
     EVENTS = await apiGet('getEvents');     // spot counts change when a spot is freed/refilled
     FAMILIES = await apiGet('getFamilies');
     renderAll();
@@ -969,7 +976,7 @@ function renderLog(){
       <td>${esc(l.role)}${l.slot?'<div style="font-size:11px;color:var(--muted)">'+esc(l.slot)+'</div>':''}</td>
       <td>${esc(l.volunteer||'—')}</td>
       <td class="num">${l.credits}</td>
-      <td><span class="tag ${l.eventCancelled?'cancelled':l.status}">${l.eventCancelled?'cancelled':l.status}</span></td>
+      <td><span class="tag ${l.eventCancelled?'cancelled':l.status}">${l.eventCancelled?'cancelled':l.status}</span>${l.note?'<div style="font-size:11px;color:var(--muted);margin-top:4px;max-width:240px;white-space:normal;line-height:1.4">'+esc(l.note)+'</div>':''}</td>
       <td style="text-align:right;white-space:nowrap">${action}</td>
     </tr>`;
   }).join('');
@@ -1038,8 +1045,8 @@ function exportStandings(){
   downloadCsv('volunteer-standings.csv',rows);
 }
 function exportLog(){
-  const rows=[['When','Family','Event','Role','Slot','Volunteer','Session','Credits','Status']];
-  LOG.forEach(l=>rows.push([fmtTs(l.timestamp),l.surname,l.eventName,l.role,l.slot||'',l.volunteer||'',l.session,l.credits,l.status]));
+  const rows=[['When','Family','Event','Role','Slot','Volunteer','Session','Credits','Status','Note']];
+  LOG.forEach(l=>rows.push([fmtTs(l.timestamp),l.surname,l.eventName,l.role,l.slot||'',l.volunteer||'',l.session,l.credits,l.status,l.note||'']));
   downloadCsv('volunteer-log.csv',rows);
 }
 
