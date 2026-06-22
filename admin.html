@@ -386,6 +386,7 @@ tr:last-child td{border-bottom:none}
     <div class="card guide"><div style="padding:14px">
       <h3>Approvals — the thing you'll do most</h3>
       <p>Every shift a volunteer signs up for lands here as <b>pending</b>. For each one, hit the green check to <b>approve</b> (credits count) or the red X to <b>reject</b> (credits don't count, and the spot reopens). The Role column shows who volunteered.</p>
+      <p>There's also a <b>Release</b> button on each row: it frees the spot the same way Release spot does in the Full log, but without marking it rejected — handy for a duplicate signup you just want to clear. The spot reopens, it's logged as <b>Released</b>, and you can Restore it later from the Full log if needed.</p>
       <p><b>Add a shift manually:</b> if someone volunteered but didn't sign up online, use this — pick the family, event, volunteer name, and role. It ignores the spot limit, so it works for past events too.</p>
       <p><b>Import past shifts (CSV):</b> for backfilling a whole event at once. Download the template, fill it in, paste or upload it. Bad rows are skipped and listed back by line number so you can fix just those. Tick "Mark as approved" since they already happened.</p>
     </div></div>
@@ -567,6 +568,7 @@ function renderApprovals(){
       <td style="white-space:nowrap">
         <button class="btn sm green" data-act="approved" data-id="${l.logId}"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 6"/></svg></button>
         <button class="btn sm red" data-act="rejected" data-id="${l.logId}"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        <button class="btn sm ghost" data-act="released" data-id="${l.logId}" title="Free up this spot — it reopens for others, no rejection">Release</button>
       </td>
     </tr>`).join('');
   $('approvals').innerHTML=`<table><thead><tr><th>Family / event</th><th>Role / volunteer</th><th>Credits</th><th>Decision</th></tr></thead><tbody>${rows}</tbody></table>`;
