@@ -266,7 +266,7 @@ tr:last-child td{border-bottom:none}
       <div style="padding:14px">
         <div class="field"><label>Start from preset</label>
           <div class="inline" style="gap:8px">
-            <select id="evPreset" style="flex:1"><option value="">Blank — First Aid + Track Safety</option></select>
+            <select id="evPreset" style="flex:1"><option value="">Blank New Event, or Select a Template</option></select>
             <button type="button" class="btn sm ghost" id="delPresetBtn" style="display:none">Delete</button>
           </div>
         </div>
@@ -461,10 +461,10 @@ const PW  = '13thAveVol';   // ← change this to your coordinator password
 const APP_VERSION = '2026.06.22-1';   // version of THIS admin page (GitHub)
 let LIVE_VERSION = null;              // version reported by the deployed backend
 
-/* Roles pre-filled on every new event. First Aid and Track Safety are always
-   required; numbers are left blank so you set Needed/Credits per event. Add any
-   other roles (Gate starter, Registration, etc.) manually with + Add role. */
-const DEFAULT_ROLES = ['First Aid', 'Track Safety'];
+/* Roles a new BLANK event starts with — left empty (no pre-named roles) so you
+   either type roles in or load one of your saved templates. Two empty rows give a
+   head start; add more with + Add role, or load a template to fill them. */
+const DEFAULT_ROLES = ['', ''];
 
 let SETTINGS={bondCredits:10}, FAMILIES=[], EVENTS=[], LOG=[], SEASONS={seasons:[],active:''};
 let PRESETS=[], EVENT_TYPES=[];
@@ -830,7 +830,7 @@ function renderTypeOptions(){
 // Build the preset picker.
 function renderPresetOptions(){
   const sel=$('evPreset'); const cur=sel.value;
-  sel.innerHTML='<option value="">Blank — First Aid + Track Safety</option>'
+  sel.innerHTML='<option value="">Blank New Event, or Select a Template</option>'
     + PRESETS.map(p=>`<option value="${esc(p.name)}">${esc(p.name)}${p.type?' ('+esc(p.type)+')':''}</option>`).join('');
   if(cur && [...sel.options].some(o=>o.value===cur)) sel.value=cur;
   $('delPresetBtn').style.display = sel.value?'inline-flex':'none';
@@ -916,28 +916,29 @@ async function cancelEv(id,to,btn){
 async function addEv(){
   const name=$('evName').value.trim(); if(!name){ toast('Give the event a name','err'); return; }
   if($('evType').value==='__other' && !$('evTypeOther').value.trim()){ toast('Enter the custom event type','err'); return; }
-  if(!ROLES_DRAFT.length){ toast('Add at least one role','err'); return; }
+  const cleanRoles=ROLES_DRAFT.filter(r=>String(r.role).trim());
+  if(!cleanRoles.length){ toast('Add at least one role','err'); return; }
   const type=eventTypeValue();
   const featured=$('evFeatured').checked;
   const planNeeded=$('evPlan').checked;
   $('addEvBtn').disabled=true;
   try{
     if(EDIT_ID){
-      EVENTS=await apiPost('updateEvent',{eventId:EDIT_ID,event:{name,type,date:$('evDate').value,notes:$('evNotes').value,roles:ROLES_DRAFT,featured,planNeeded}});
+      EVENTS=await apiPost('updateEvent',{eventId:EDIT_ID,event:{name,type,date:$('evDate').value,notes:$('evNotes').value,roles:cleanRoles,featured,planNeeded}});
       toast('Changes saved','ok');
       exitEdit();
       renderAll();
     } else if($('evRepeat').value==='weekly'){
       const weekdays=[...document.querySelectorAll('#dowPick .dow.on')].map(b=>+b.dataset.d);
       if(!weekdays.length){ toast('Pick at least one weekday','err'); $('addEvBtn').disabled=false; return; }
-      const res=await apiPost('addRecurringEvents',{spec:{name,type,weekdays,startDate:$('evStart').value,endDate:$('evEnd').value,notes:$('evNotes').value,roles:ROLES_DRAFT}});
+      const res=await apiPost('addRecurringEvents',{spec:{name,type,weekdays,startDate:$('evStart').value,endDate:$('evEnd').value,notes:$('evNotes').value,roles:cleanRoles}});
       EVENTS=res.events;
       toast(`Created ${res.created} events`,'ok');
       $('evStart').value=''; $('evEnd').value=''; document.querySelectorAll('#dowPick .dow').forEach(b=>b.classList.remove('on'));
       $('evName').value=''; $('evNotes').value=''; $('evFeatured').checked=false; $('evPlan').checked=false; resetTypeOther(); loadTemplate();
       renderAll();
     } else {
-      EVENTS=await apiPost('addEvent',{event:{name,type,date:$('evDate').value,notes:$('evNotes').value,roles:ROLES_DRAFT,featured,planNeeded}});
+      EVENTS=await apiPost('addEvent',{event:{name,type,date:$('evDate').value,notes:$('evNotes').value,roles:cleanRoles,featured,planNeeded}});
       toast('Event added','ok');
       $('evDate').value='';
       $('evName').value=''; $('evNotes').value=''; $('evFeatured').checked=false; $('evPlan').checked=false; resetTypeOther(); loadTemplate();
