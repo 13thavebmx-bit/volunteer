@@ -262,6 +262,7 @@ tr:last-child td{border-bottom:none}
 <script>
 var API='https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
 var EVENTS=[],TASKS=[],EVENT=null,curEvent='',filter='__ALL__';
+var CAN_DELETE=false;  // public link: no delete, guards against accidental loss
 
 async function apiGet(action, params){
   params=params||{}; const u=new URL(API); u.searchParams.set('action',action);
@@ -404,7 +405,7 @@ function rowHtml(t){
       +'<div class="tk-meta">'+meta+'</div></div>'
     +'<div class="tk-actions">'
       +'<button class="r-move" data-edit="'+attr(t.taskId)+'">\u270e</button>'
-      +'<button class="x" data-del="'+attr(t.taskId)+'">\u00d7</button>'
+      +(CAN_DELETE?'<button class="x" data-del="'+attr(t.taskId)+'">\u00d7</button>':'')
     +'</div></div>';
 }
 function renderList(tasks,el){
