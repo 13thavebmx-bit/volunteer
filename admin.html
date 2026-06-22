@@ -43,6 +43,7 @@ body{font-family:var(--font);background:#F4F6F7;color:var(--ink);font-size:15px;
 .head-right{margin-left:auto;display:flex;align-items:center;gap:10px}
 .season-chip{font-size:11px;font-weight:700;background:rgba(255,255,255,.18);color:#fff;padding:5px 11px;border-radius:20px}
 .signout{background:none;border:1px solid rgba(255,255,255,.4);color:#fff;font-size:12px;font-weight:600;padding:6px 11px;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--font)}
+.gocoord{background:#fff;color:var(--teal-dark);border:none;font-size:12px;font-weight:700;padding:6px 12px;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--font);text-decoration:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 
 /* Tabs */
 .tabs{display:flex;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:68px;z-index:30;overflow-x:auto}
@@ -181,6 +182,7 @@ tr:last-child td{border-bottom:none}
       <div class="head-sub" id="seasonSub">Season</div>
     </div>
     <div class="head-right">
+      <a class="gocoord" href="coordinator.html" title="Open the Events Coordinator">Events Coordinator →</a>
       <span class="season-chip" id="seasonChip">—</span>
       <button class="signout" id="signout">Sign out</button>
     </div>
