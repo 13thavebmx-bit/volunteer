@@ -197,6 +197,16 @@ tr:last-child td{border-bottom:none}
 .foot{text-align:center;font-size:11px;color:var(--muted-soft);padding:18px 16px 30px}
 .vtoggle{font-size:12px;font-weight:700;color:var(--teal);background:none;border:none;cursor:pointer;font-family:var(--font);padding:2px 0;margin-bottom:10px}
 .vgroup{border:1px dashed var(--line);border-radius:var(--radius-sm);padding:10px 12px 2px;margin-bottom:12px}
+.howto{border:1px solid var(--line);border-radius:var(--radius-sm);background:#F7FAFB;margin-bottom:14px;overflow:hidden}
+.howto>summary{list-style:none;cursor:pointer;padding:11px 14px;font-size:13px;font-weight:700;color:var(--teal-dark);display:flex;align-items:center;gap:8px;user-select:none}
+.howto>summary::-webkit-details-marker{display:none}
+.howto>summary .qq{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--teal);color:#fff;font-size:11px;font-weight:800;flex:0 0 auto}
+.howto>summary .car{margin-left:auto;color:var(--muted-soft);transition:transform .15s}
+.howto[open]>summary{border-bottom:1px solid var(--line)}
+.howto[open]>summary .car{transform:rotate(90deg)}
+.howto-body{padding:12px 14px 14px;font-size:13px;line-height:1.55;color:var(--ink)}
+.howto-body p{margin:0 0 9px} .howto-body p:last-child{margin:0}
+.howto-body .k{font-weight:700;color:var(--teal-dark)}
 
 </style></head><body>
 
@@ -217,6 +227,16 @@ tr:last-child td{border-bottom:none}
   </div>
 
   <div class="sec on" style="padding-top:16px">
+    <details class="howto">
+      <summary><span class="qq">?</span>How it works<span class="car">&#9656;</span></summary>
+      <div class="howto-body">
+        <p><b>Pick an event</b> up top to plan it. Only events flagged <b>&ldquo;Plan needed&rdquo;</b> in the Volunteer Admin show up here.</p>
+        <p><b>Add tasks</b> with <span class="k">+ Add task</span>, or <span class="k">Load</span> a saved template to drop in a whole checklist at once. Each task can hold an assignee, due date, status, notes, and an optional vendor + contact &mdash; a saved phone number becomes tap-to-call and an email tap-to-send.</p>
+        <p><b>Status</b> runs Not started &rarr; In process &rarr; Delayed &rarr; Complete &rarr; Canceled. Tap the coloured pill to cycle it, or set it in the task form.</p>
+        <p>The list <b>sorts itself by due date</b> every time it opens &mdash; overdue and soonest first; Complete and Canceled drop to the bottom and don&rsquo;t count against the progress bar.</p>
+        <p><span class="k">Save as template</span> turns this event&rsquo;s tasks into a reusable checklist (structure only &mdash; vendors stay per-event). <span class="k">Copy link</span> gives you a shareable board for whoever&rsquo;s helping; they can update and add tasks but can&rsquo;t delete.</p>
+      </div>
+    </details>
     <div class="sec-head"><h2>Event plans</h2><span class="sub">Flagged events from the volunteer tracker</span></div>
 
     <div class="card" id="pickCard" style="padding:14px">

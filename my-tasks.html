@@ -197,6 +197,16 @@ tr:last-child td{border-bottom:none}
 .foot{text-align:center;font-size:11px;color:var(--muted-soft);padding:18px 16px 30px}
 .vtoggle{font-size:12px;font-weight:700;color:var(--teal);background:none;border:none;cursor:pointer;font-family:var(--font);padding:2px 0;margin-bottom:10px}
 .vgroup{border:1px dashed var(--line);border-radius:var(--radius-sm);padding:10px 12px 2px;margin-bottom:12px}
+.howto{border:1px solid var(--line);border-radius:var(--radius-sm);background:#F7FAFB;margin-bottom:14px;overflow:hidden}
+.howto>summary{list-style:none;cursor:pointer;padding:11px 14px;font-size:13px;font-weight:700;color:var(--teal-dark);display:flex;align-items:center;gap:8px;user-select:none}
+.howto>summary::-webkit-details-marker{display:none}
+.howto>summary .qq{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--teal);color:#fff;font-size:11px;font-weight:800;flex:0 0 auto}
+.howto>summary .car{margin-left:auto;color:var(--muted-soft);transition:transform .15s}
+.howto[open]>summary{border-bottom:1px solid var(--line)}
+.howto[open]>summary .car{transform:rotate(90deg)}
+.howto-body{padding:12px 14px 14px;font-size:13px;line-height:1.55;color:var(--ink)}
+.howto-body p{margin:0 0 9px} .howto-body p:last-child{margin:0}
+.howto-body .k{font-weight:700;color:var(--teal-dark)}
 
 .head .head-title{font-size:16px}
 </style></head><body>
@@ -209,6 +219,16 @@ tr:last-child td{border-bottom:none}
   <div class="sec on" style="padding-top:16px">
     <div id="loadingWrap" class="loading">Loading...</div>
     <div id="content" style="display:none">
+      <details class="howto">
+        <summary><span class="qq">?</span>How it works<span class="car">&#9656;</span></summary>
+        <div class="howto-body">
+          <p>This is the task list for this event. Anything you change <b>saves right away</b>, and everyone with the link sees it.</p>
+          <p>Tap the coloured <b>status button</b> on a task to move it along: Not started &rarr; In process &rarr; Delayed &rarr; Complete &rarr; Canceled.</p>
+          <p>Tap the <b>pencil</b> to edit a task &mdash; add who&rsquo;s doing it, a due date, or the vendor&rsquo;s name and phone/email. Once a phone or email is saved, tap it to call or send.</p>
+          <p>Use <span class="k">+ Add task</span> for something new, and the <b>name buttons</b> up top to see just one person&rsquo;s tasks.</p>
+          <p>Tasks can&rsquo;t be deleted here, on purpose &mdash; if one needs removing, just let the coordinator know.</p>
+        </div>
+      </details>
       <div class="card" style="padding:14px">
         <div class="bar-wrap"><div class="miniBar done"><i id="progBar" style="width:0%"></i></div><span class="bar-pct" id="progPct">0%</span></div>
         <div class="bar-sub" id="progSub"></div>
