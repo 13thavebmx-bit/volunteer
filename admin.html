@@ -458,7 +458,7 @@ tr:last-child td{border-bottom:none}
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
 const PW  = '13thAveVol';   // ← change this to your coordinator password
-const APP_VERSION = '2026.06.22-2';   // version of THIS admin page (GitHub)
+const APP_VERSION = '2026.06.24-1';   // version of THIS admin page (GitHub)
 let LIVE_VERSION = null;              // version reported by the deployed backend
 
 /* Roles a new BLANK event starts with — left empty (no pre-named roles) so you
@@ -468,6 +468,8 @@ const DEFAULT_ROLES = ['', ''];
 
 let SETTINGS={bondCredits:10}, FAMILIES=[], EVENTS=[], LOG=[], SEASONS={seasons:[],active:''};
 let PRESETS=[], EVENT_TYPES=[];
+let BUSY=false;          // true while a write is in flight — pauses the auto-refresh
+let AUTO_TIMER=null;     // 30s background poll so new signups appear without a manual reload
 
 /* ---- API ---- */
 async function apiGet(action, params={}){
@@ -506,8 +508,39 @@ function showTab(name){
 /* ---- Boot / load ---- */
 async function boot(){
   if(API==='YOUR_APPS_SCRIPT_URL_HERE'){ toast('Paste your Apps Script URL into admin.html','err'); return; }
-  try{ await reloadAll(); }
+  try{ await reloadAll(); startAutoRefresh(); }
   catch(err){ toast('Could not reach the tracker. '+err.message,'err'); }
+}
+
+/* ---- Auto-refresh ----
+   Every 30s, quietly pull the latest log/events/families and re-render the
+   dashboard + approvals so new signups show up without a manual reload. It
+   pauses while a write is in flight (BUSY), while the tab is hidden, and it
+   preserves whatever the coordinator has half-typed into the manual-add form. */
+function startAutoRefresh(){
+  if(AUTO_TIMER) return;
+  AUTO_TIMER = setInterval(silentRefresh, 30000);
+}
+async function silentRefresh(){
+  if(BUSY || document.hidden) return;
+  const keep = {
+    fam: ($('mFam')||{}).value, ev: ($('mEvent')||{}).value,
+    role: ($('mRole')||{}).value, vol: ($('mVol')||{}).value
+  };
+  try{
+    const [log, events, families] = await Promise.all([
+      apiGet('getLog'), apiGet('getEvents'), apiGet('getFamilies')
+    ]);
+    if(BUSY) return; // a write started mid-fetch — don't stomp on it
+    LOG=log; EVENTS=events; FAMILIES=families;
+    renderDash();
+    renderApprovals();
+    // restore the manual-add form so a background refresh never wipes it
+    if($('mFam')   && keep.fam!=null)  $('mFam').value=keep.fam;
+    if($('mEvent') && keep.ev!=null)   $('mEvent').value=keep.ev;
+    if(keep.ev){ mRoleOptions(); if($('mRole') && keep.role!=null) $('mRole').value=keep.role; }
+    if($('mVol')   && keep.vol!=null)  $('mVol').value=keep.vol;
+  }catch(e){ /* stay quiet on background errors */ }
 }
 async function reloadAll(){
   const data = await apiGet('bootstrap');
@@ -597,12 +630,14 @@ async function manualAdd(){
   if(!vol){ toast('Enter the volunteer name','err'); return; }
   const ev=EVENTS.find(e=>String(e.eventId)===String(eid)); const r=ev.roles[+ri];
   $('mAddBtn').disabled=true;
+  BUSY=true;
   try{
     await apiPost('logVolunteer',{entry:{familyId:fid,eventId:ev.eventId,eventName:ev.name,role:r.role,slot:r.slot||'',session:'',credits:r.credits,volunteer:vol,override:true}});
     EVENTS=await apiGet('getEvents'); LOG=await apiGet('getLog'); FAMILIES=await apiGet('getFamilies');
     $('mRole').value=''; $('mVol').value='';
     renderAll(); toast('Shift added — pending approval','ok');
   }catch(err){ toast(err.message,'err'); }
+  finally{ BUSY=false; }
   $('mAddBtn').disabled=false;
 }
 
@@ -644,6 +679,7 @@ async function importCsv(){
   }));
   const status=$('impApproved').checked?'approved':'pending';
   $('impBtn').disabled=true;
+  BUSY=true;
   try{
     const res=await apiPost('importShifts',{rows,status});
     EVENTS=await apiGet('getEvents'); LOG=await apiGet('getLog'); FAMILIES=await apiGet('getFamilies');
@@ -657,6 +693,7 @@ async function importCsv(){
       $('impText').value=''; $('impFile').value='';
     }
   }catch(err){ toast(err.message,'err'); $('impResult').textContent=''; }
+  finally{ BUSY=false; }
   $('impBtn').disabled=false;
 }
 async function decide(logId,status,btn,note){
@@ -666,6 +703,7 @@ async function decide(logId,status,btn,note){
     note=reason.trim();
   }
   btn.disabled=true;
+  BUSY=true;
   try{
     const payload={logId,status};
     if(note!==undefined) payload.note=note;
@@ -677,6 +715,7 @@ async function decide(logId,status,btn,note){
     const msg={approved:'Approved',rejected:'Rejected',released:'Spot released — it\u2019s open again',pending:'Restored to pending'}[status]||'Updated';
     toast(msg, (status==='approved'||status==='released'||status==='pending')?'ok':'');
   }catch(err){ toast(err.message,'err'); btn.disabled=false; }
+  finally{ BUSY=false; }
 }
 
 /* ---- Families ---- */

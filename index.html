@@ -128,6 +128,37 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
   color:var(--ok);font-size:13px;font-weight:700;padding:7px 12px;border-radius:20px}
 .bondchip svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.5}
 
+/* Required-field marker */
+.req{color:var(--red);font-weight:800;margin-left:2px}
+
+/* Family commitments (upcoming shifts) on the dashboard */
+.commit{margin-top:14px;border-top:1px solid var(--line-soft);padding-top:12px}
+.commit-head{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-soft);margin-bottom:8px}
+.commit-empty{font-size:12.5px;color:var(--muted-soft)}
+.commit-list{display:flex;flex-direction:column;gap:7px}
+.commit-row{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);background:#FBFCFD}
+.commit-main{flex:1;min-width:0}
+.commit-role{font-size:13.5px;font-weight:700;line-height:1.3}
+.commit-sub{font-weight:500;color:var(--muted);font-size:12px}
+.commit-ev{font-size:11.5px;color:var(--muted);margin-top:2px;word-break:break-word}
+.cpill{flex-shrink:0;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:4px 9px;border-radius:20px}
+.cpill.ok{background:var(--ok-tint);color:var(--ok)}
+.cpill.pend{background:var(--warn-tint);color:var(--warn)}
+
+/* Thank-you modal */
+.modal-back{position:fixed;inset:0;background:rgba(16,24,40,.55);display:none;align-items:center;justify-content:center;
+  z-index:200;padding:20px;opacity:0;transition:opacity .2s}
+.modal-back.show{display:flex;opacity:1}
+.modal{background:#fff;border-radius:var(--radius);max-width:380px;width:100%;padding:26px 22px 22px;text-align:center;
+  box-shadow:0 20px 50px rgba(0,0,0,.3);transform:translateY(12px);transition:transform .2s}
+.modal-back.show .modal{transform:translateY(0)}
+.modal-ic{width:60px;height:60px;border-radius:50%;background:var(--ok-tint);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.modal-ic svg{width:30px;height:30px;stroke:var(--ok);fill:none;stroke-width:2.5}
+.modal h3{font-family:'Anton',var(--font);font-weight:400;font-size:24px;letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px;color:var(--ink)}
+.modal p{font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:6px}
+.modal .modal-sum{font-size:13px;color:var(--teal-dark);font-weight:700;background:var(--teal-tint);border-radius:var(--radius-sm);padding:9px 12px;margin:14px 0 2px}
+.modal .btn{margin-top:18px}
+
 /* Footer + states */
 .foot{text-align:center;padding:8px 14px 30px}
 .foot a{color:var(--teal);font-size:12.5px;font-weight:600;text-decoration:none}
@@ -170,6 +201,7 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
       <div class="bondchip" id="pBond" style="display:none">
         <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg> Bond requirement met
       </div>
+      <div class="commit" id="pCommit"></div>
     </div>
 
     <div class="card" id="form" style="display:none">
@@ -190,8 +222,8 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
         <input type="text" id="clubOther" placeholder="Club name" autocomplete="off" style="display:none;margin-top:8px">
       </div>
 
-      <label for="vol">Volunteer name</label>
-      <input type="text" id="vol" placeholder="Who's doing the shift(s)?" autocomplete="off">
+      <label for="vol">Volunteer name <span class="req" title="Required">*</span></label>
+      <input type="text" id="vol" placeholder="Who's doing the shift(s)?" autocomplete="off" aria-required="true" required>
 
       <label for="event">Event</label>
       <select id="event"><option value="">Select an event…</option></select>
@@ -234,6 +266,17 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
   </div>
 </div>
 
+<div class="modal-back" id="thanksModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="thanksTitle">
+    <div class="modal-ic"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 6"/></svg></div>
+    <h3 id="thanksTitle">Thank you!</h3>
+    <p>We've got your volunteer sign-up. The coordinator will review it shortly, and your credits count toward your family's bond once it's approved.</p>
+    <p>Thanks for stepping up for the club — we appreciate it.</p>
+    <div class="modal-sum" id="thanksSum" style="display:none"></div>
+    <button class="btn primary" id="thanksClose">Done</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -242,7 +285,7 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
    This is the only line you ever change in this file.
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
-const APP_VERSION = '2026.06.22-2';
+const APP_VERSION = '2026.06.24-1';
 
 /* ---- State ---- */
 let SETTINGS = {bondCredits:10, seasonLabel:'', seasonWindow:'', bondNote:''};
@@ -279,6 +322,12 @@ function toast(msg, kind){
   const t=$('toast'); t.textContent=msg; t.className='toast show '+(kind||'');
   setTimeout(()=>t.className='toast',2600);
 }
+function showThanks(summary){
+  const s=$('thanksSum');
+  if(summary){ s.textContent=summary; s.style.display='block'; } else { s.style.display='none'; }
+  $('thanksModal').classList.add('show');
+}
+function hideThanks(){ $('thanksModal').classList.remove('show'); }
 function setConn(state){
   const d=$('dot'), t=$('connTxt');
   if(state==='live'){ d.className='dot live'; t.textContent='Live'; }
@@ -342,7 +391,7 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','
 function showProgress(fid){
   const f = FAMILIES.find(x=>String(x.familyId)===String(fid));
   const box=$('progress');
-  if(!f){ box.classList.remove('show'); return; }
+  if(!f){ box.classList.remove('show'); $('pCommit').innerHTML=''; return; }
   const need = SETTINGS.bondCredits;
   box.classList.add('show');
   $('pName').textContent = f.surname;
@@ -357,6 +406,49 @@ function showProgress(fid){
     : '<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg> Bond requirement met';
   $('pRemain').textContent = f.board ? 'Board member — bond covered' : (done ? 'Bond requirement met' : (Math.max(0,need-f.approved)+' to go'));
   $('pPending').textContent = f.pending>0 ? ('+'+f.pending+' pending approval') : '';
+  renderCommitments(fid);
+}
+
+/* Collect every shift this family is signed up for (pending + approved),
+   pulled from the events data already loaded for the signup form. Needs the
+   familyId the backend now attaches to each signup. */
+function familyCommitments(fid){
+  const out=[];
+  EVENTS.forEach(function(ev){
+    if(ev.status==='cancelled') return;
+    (ev.roles||[]).forEach(function(r){
+      (r.signups||[]).forEach(function(s){
+        if(String(s.familyId)===String(fid)){
+          out.push({ eventName:ev.name, date:ev.date||'', role:r.role, slot:r.slot||'',
+                     session:s.session||'', who:s.name||'', status:s.status||'pending' });
+        }
+      });
+    });
+  });
+  out.sort(function(a,b){ return String(a.date||'9999-99-99').localeCompare(String(b.date||'9999-99-99')); });
+  return out;
+}
+
+function renderCommitments(fid){
+  const box=$('pCommit');
+  const all = familyCommitments(fid).filter(function(c){ return notPast_(c.date); });
+  if(!all.length){
+    box.innerHTML='<div class="commit-head">Your upcoming shifts</div>'
+      +'<div class="commit-empty">Nothing signed up yet — pick an event below to volunteer.</div>';
+    return;
+  }
+  const rows=all.map(function(c){
+    const when = c.date ? evLabel_(c.date).replace(/^ — /,'') : 'No date set';
+    const sub = [c.slot, c.session].filter(Boolean).join(' · ');
+    const pill = c.status==='approved'
+      ? '<span class="cpill ok">Approved</span>'
+      : '<span class="cpill pend">Pending</span>';
+    return '<div class="commit-row"><div class="commit-main">'
+      +'<div class="commit-role">'+esc(c.role)+(sub?' <span class="commit-sub">· '+esc(sub)+'</span>':'')+'</div>'
+      +'<div class="commit-ev">'+esc(c.eventName)+' — '+esc(when)+(c.who?' · '+esc(c.who):'')+'</div>'
+      +'</div>'+pill+'</div>';
+  }).join('');
+  box.innerHTML='<div class="commit-head">Your upcoming shifts</div><div class="commit-list">'+rows+'</div>';
 }
 
 function onEventChange(){
@@ -442,21 +534,24 @@ async function submitShift(){
       familyId:fid, guest:isGuest, club:club, eventId:CUR_EVENT.eventId, eventName:CUR_EVENT.name,
       session:SESSION, volunteer:vol
     }, spots:spots});
-    if(res.errors && res.errors.length){
-      const part = res.logged ? `Signed up for ${res.logged} — ` : '';
-      toast(`${part}${res.errors.length} just filled up`, res.logged?'':'err');
-    } else if(isGuest){
-      toast(`Thanks! Signed up for ${res.logged} ${res.logged===1?'spot':'spots'} — ${club} noted`, 'ok');
-    } else {
-      toast(`Signed up for ${res.logged} ${res.logged===1?'spot':'spots'} — ${res.credits} ${res.credits===1?'credit':'credits'} pending`, 'ok');
-    }
-    // refresh data so spot counts + progress update, keep family selected
+    // refresh data so spot counts + progress (incl. the new shifts) update, keep family selected
     EVENTS = await apiGet('getEvents');
     FAMILIES = await apiGet('getFamilies');
     showProgress(fid);
-    renderEvents();
-    SEL.clear(); $('vol').value=''; $('club').value=''; $('clubOther').value=''; $('clubOther').style.display='none';
-    $('event').value=''; onEventChange();
+    if(res.logged>0){
+      const summary = isGuest
+        ? `${res.logged} ${res.logged===1?'spot':'spots'} booked — ${club} (guest · no credits)`
+        : `${res.logged} ${res.logged===1?'spot':'spots'} · ${res.credits} ${res.credits===1?'credit':'credits'} pending approval`;
+      showThanks(summary);
+      if(res.errors && res.errors.length){
+        toast(`Heads up: ${res.errors.length} ${res.errors.length===1?'spot':'spots'} just filled up`, '');
+      }
+      SEL.clear(); $('vol').value=''; $('club').value=''; $('clubOther').value=''; $('clubOther').style.display='none';
+      $('event').value=''; renderEvents(); onEventChange();
+    } else {
+      toast('Those spots just filled up — please pick another','err');
+      renderEvents(); renderRoleList(); refreshSubmit();
+    }
   }catch(err){
     // a full-spot race or other error: refresh counts so the list reflects reality
     toast(err.message,'err');
@@ -486,6 +581,8 @@ function bindEvents(){
   $('vol').addEventListener('input', refreshSubmit);
   $('event').addEventListener('change', onEventChange);
   $('submit').addEventListener('click', submitShift);
+  $('thanksClose').addEventListener('click', hideThanks);
+  $('thanksModal').addEventListener('click', e=>{ if(e.target.id==='thanksModal') hideThanks(); });
   document.querySelectorAll('#seg button').forEach(b=>{
     b.addEventListener('click',()=>{
       document.querySelectorAll('#seg button').forEach(x=>x.classList.remove('on'));
