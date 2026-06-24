@@ -330,7 +330,9 @@ tr:last-child td{border-bottom:none}
     <div class="sec-head"><h2>Full log</h2><button class="btn sm" id="expLog"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export CSV</button></div>
     <div class="filters">
       <select id="fltFam"><option value="">All families</option></select>
+      <select id="fltEvent"><option value="">All events</option></select>
       <select id="fltStatus"><option value="">All statuses</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="released">Released</option></select>
+      <select id="fltTime"><option value="">All dates</option><option value="upcoming">Upcoming only</option><option value="past">Past events</option></select>
     </div>
     <div class="card"><div id="logList"></div></div>
   </div>
@@ -1003,12 +1005,43 @@ async function removeEv(id,btn){
 
 /* ---- Log ---- */
 function renderLogFilters(){
+  const keepFam=$('fltFam').value, keepEv=$('fltEvent').value;
   $('fltFam').innerHTML='<option value="">All families</option>'+FAMILIES.map(f=>`<option value="${esc(f.surname)}">${esc(f.surname)}</option>`).join('');
+  // Event list = events that actually appear in the log, newest first. Names/dates
+  // come from EVENTS when available, otherwise from the log entry itself (deleted events).
+  const evById=EVENTS.reduce((m,e)=>{ m[String(e.eventId)]=e; return m; },{});
+  const seen={};
+  LOG.forEach(l=>{ const id=String(l.eventId||''); if(id&&!seen[id]){ const e=evById[id]; seen[id]={id:id, name:(e?e.name:l.eventName)||'(event)', date:e?e.date:''}; } });
+  const list=Object.keys(seen).map(id=>seen[id]).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+  $('fltEvent').innerHTML='<option value="">All events</option>'+list.map(e=>`<option value="${esc(e.id)}">${esc(e.name)}${e.date?' — '+esc(fmtDate_(e.date)):''}</option>`).join('');
+  // restore selections so a data refresh doesn't wipe the coordinator's filters
+  $('fltFam').value=keepFam; $('fltEvent').value=keepEv;
+}
+// Resolve a log entry's event date (for the Upcoming/Past filter). null = undated/unknown.
+function logEventDate_(l){
+  const e=EVENTS.find(x=>String(x.eventId)===String(l.eventId));
+  return e?evDate_(e.date):null;
+}
+// All four filters, applied together. Shared by the table and the CSV export.
+function filteredLog(){
+  const ff=$('fltFam').value, fs=$('fltStatus').value, fe=$('fltEvent').value, ft=$('fltTime').value;
+  const today=new Date(); today.setHours(0,0,0,0);
+  return LOG.filter(l=>{
+    if(ff && l.surname!==ff) return false;
+    if(fs && l.status!==fs) return false;
+    if(fe && String(l.eventId)!==String(fe)) return false;
+    if(ft){
+      const d=logEventDate_(l);
+      if(ft==='upcoming' && d && d<today) return false;   // undated counts as upcoming
+      if(ft==='past' && (!d || d>=today)) return false;    // undated never counts as past
+    }
+    return true;
+  });
 }
 function renderLog(){
-  const ff=$('fltFam').value, fs=$('fltStatus').value;
-  let rows=LOG.filter(l=>(!ff||l.surname===ff)&&(!fs||l.status===fs));
-  if(!rows.length){ $('logList').innerHTML=emptyMsg('No log entries match.'); return; }
+  const rows=filteredLog();
+  if(!rows.length){ $('logList').innerHTML=emptyMsg('No log entries match these filters.'); return; }
+  const count=`<div class="sub" style="margin:-2px 0 10px">Showing ${rows.length} of ${LOG.length} ${LOG.length===1?'entry':'entries'}</div>`;
   const body=rows.map(l=>{
     const canRelease = !l.eventCancelled && (l.status==='pending'||l.status==='approved');
     const action = canRelease
@@ -1025,7 +1058,7 @@ function renderLog(){
       <td style="text-align:right;white-space:nowrap">${action}</td>
     </tr>`;
   }).join('');
-  $('logList').innerHTML=`<table><thead><tr><th>When</th><th>Family</th><th>Event</th><th>Role</th><th>Volunteer</th><th>Cr</th><th>Status</th><th></th></tr></thead><tbody>${body}</tbody></table>`;
+  $('logList').innerHTML=count+`<table><thead><tr><th>When</th><th>Family</th><th>Event</th><th>Role</th><th>Volunteer</th><th>Cr</th><th>Status</th><th></th></tr></thead><tbody>${body}</tbody></table>`;
   $('logList').querySelectorAll('button[data-rel]').forEach(b=>b.addEventListener('click',()=>{ if(confirm('Release this spot? It reopens on the volunteer list and any credits stop counting.')) decide(b.dataset.rel,'released',b); }));
   $('logList').querySelectorAll('button[data-rest]').forEach(b=>b.addEventListener('click',()=>decide(b.dataset.rest,'pending',b)));
 }
@@ -1090,8 +1123,9 @@ function exportStandings(){
   downloadCsv('volunteer-standings.csv',rows);
 }
 function exportLog(){
+  const src=filteredLog();
   const rows=[['When','Family','Event','Role','Slot','Volunteer','Session','Credits','Status','Note']];
-  LOG.forEach(l=>rows.push([fmtTs(l.timestamp),l.surname,l.eventName,l.role,l.slot||'',l.volunteer||'',l.session,l.credits,l.status,l.note||'']));
+  src.forEach(l=>rows.push([fmtTs(l.timestamp),l.surname,l.eventName,l.role,l.slot||'',l.volunteer||'',l.session,l.credits,l.status,l.note||'']));
   downloadCsv('volunteer-log.csv',rows);
 }
 
@@ -1125,6 +1159,8 @@ $('addEvBtn').addEventListener('click',addEv);
 $('cancelEdit').addEventListener('click',exitEdit);
 $('fltFam').addEventListener('change',renderLog);
 $('fltStatus').addEventListener('change',renderLog);
+$('fltEvent').addEventListener('change',renderLog);
+$('fltTime').addEventListener('change',renderLog);
 $('saveSettings').addEventListener('click',saveSettings);
 $('addSeasonBtn').addEventListener('click',addSeason);
 $('expStandings').addEventListener('click',exportStandings);
