@@ -126,7 +126,7 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
 .bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--teal-dark));border-radius:7px;
   transition:width .4s ease;width:0}
 .bar.done>i{background:linear-gradient(90deg,#1FA84A,#1f8a4c)}
-.pmeta{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--muted)}
+.pmeta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:2px 12px;margin-top:8px;font-size:12px;color:var(--muted)}
 .pmeta .pending{color:var(--warn)}
 .bondchip{display:inline-flex;align-items:center;gap:6px;margin-top:12px;background:var(--ok-tint);
   color:var(--ok);font-size:13px;font-weight:700;padding:7px 12px;border-radius:20px}
@@ -146,6 +146,8 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
 .commit-sub{font-weight:500;color:var(--muted);font-size:12px}
 .commit-ev{font-size:11.5px;color:var(--muted);margin-top:2px;word-break:break-word}
 .cpill{flex-shrink:0;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:4px 9px;border-radius:20px}
+.commit-right{flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.commit-cr{font-size:11px;font-weight:700;color:var(--teal-dark);white-space:nowrap}
 .cpill.ok{background:var(--ok-tint);color:var(--ok)}
 .cpill.pend{background:var(--warn-tint);color:var(--warn)}
 
@@ -357,18 +359,20 @@ function renderFamilies(){
     +FAMILIES.map(f=>`<option value="${f.familyId}">${esc(f.surname)}</option>`).join('')
     +'</optgroup>';
 }
-function weekRange_(){
-  const now=new Date(); const g=now.getDay(); // 0 Sun..6 Sat
-  const mon=new Date(now); mon.setDate(now.getDate()+(g===0?-6:1-g)); mon.setHours(0,0,0,0);
-  const sun=new Date(mon); sun.setDate(mon.getDate()+6); sun.setHours(23,59,59,999);
-  return [mon,sun];
+// Signup window: events show from the start of today through this many days ahead.
+// Change this one number to widen/narrow the list (e.g. 5 for a tighter view, 10 for more).
+const SIGNUP_WINDOW_DAYS = 7;
+function windowRange_(){
+  const start=new Date(); start.setHours(0,0,0,0);
+  const end=new Date(start); end.setDate(start.getDate()+SIGNUP_WINDOW_DAYS); end.setHours(23,59,59,999);
+  return [start,end];
 }
-function inThisWeek_(dateStr){
+function inWindow_(dateStr){
   if(!dateStr) return true; // undated standing events stay available
   const p=String(dateStr).split('-'); if(p.length<3) return true;
   const d=new Date(+p[0],+p[1]-1,+p[2]);
-  const [mon,sun]=weekRange_();
-  return d>=mon && d<=sun;
+  const [start,end]=windowRange_();
+  return d>=start && d<=end;
 }
 function notPast_(dateStr){
   if(!dateStr) return true;
@@ -380,8 +384,9 @@ function notPast_(dateStr){
 function evLabel_(s){ if(!s) return ''; const p=String(s).split('-'); if(p.length<3) return ' — '+s; const d=new Date(+p[0],+p[1]-1,+p[2]); return isNaN(d)?(' — '+s):(' — '+d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})); }
 function renderEvents(){
   const sel=$('event');
-  // This week's events, plus any flagged "early signup" event that hasn't happened yet.
-  const wk=EVENTS.filter(e=>e.status!=='cancelled' && (inThisWeek_(e.date) || (e.featured && notPast_(e.date))))
+  // Events within the rolling window (today + next SIGNUP_WINDOW_DAYS days), plus any
+  // flagged "early signup" event that hasn't happened yet (shown ahead of the window with a ★).
+  const wk=EVENTS.filter(e=>e.status!=='cancelled' && (inWindow_(e.date) || (e.featured && notPast_(e.date))))
                  .sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
   if(!wk.length){
     sel.innerHTML='<option value="">No events open for signup right now</option>';
@@ -389,7 +394,7 @@ function renderEvents(){
   }
   sel.disabled=false;
   sel.innerHTML='<option value="">Select an event…</option>'+
-    wk.map(e=>{ const early=e.featured && !inThisWeek_(e.date); return `<option value="${e.eventId}">${early?'★ ':''}${esc(e.name)}${evLabel_(e.date)}</option>`; }).join('');
+    wk.map(e=>{ const early=e.featured && !inWindow_(e.date); return `<option value="${e.eventId}">${early?'★ ':''}${esc(e.name)}${evLabel_(e.date)}</option>`; }).join('');
 }
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
@@ -410,7 +415,18 @@ function showProgress(fid){
     ? '<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg> Bond covered — board member'
     : '<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg> Bond requirement met';
   $('pRemain').textContent = f.board ? 'Board member — bond covered' : (done ? 'Bond requirement met' : (Math.max(0,need-f.approved)+' to go'));
-  $('pPending').textContent = f.pending>0 ? ('+'+f.pending+' pending approval') : '';
+  // Spell out BOTH the shift count and the credit count so "pending 4" can't be
+  // misread as 4 shifts. Shift count comes from the same data as the list below,
+  // so it always matches the Pending rows shown there.
+  if(f.pending>0){
+    const pendShifts = familyCommitments(fid).filter(function(c){ return c.status==='pending'; }).length;
+    const cr = f.pending+' '+(f.pending===1?'credit':'credits');
+    $('pPending').textContent = pendShifts>0
+      ? pendShifts+' '+(pendShifts===1?'shift':'shifts')+' · '+cr+' pending'
+      : cr+' pending approval';
+  } else {
+    $('pPending').textContent='';
+  }
   const pn=$('pNote');
   pn.style.display='flex';
   pn.innerHTML='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 7v5l3 2"/></svg>'
@@ -421,6 +437,15 @@ function showProgress(fid){
 /* Collect every shift this family is signed up for (pending + approved),
    pulled from the events data already loaded for the signup form. Needs the
    familyId the backend now attaches to each signup. */
+// Credits for one signed-up shift. Prefer the exact logged value if the backend
+// provides it; otherwise mirror the signup form's rule (base role credits, doubled
+// for a practice "Both" session) so the number matches what was shown at sign-up.
+function commitCredits_(ev, r, s){
+  if(s && s.credits!=null && s.credits!=='') return Number(s.credits)||0;
+  let c = Number(r.credits)||0;
+  if(s && s.session==='Both' && /practice/i.test(ev.type||'')) c*=2;
+  return c;
+}
 function familyCommitments(fid){
   const out=[];
   EVENTS.forEach(function(ev){
@@ -429,7 +454,8 @@ function familyCommitments(fid){
       (r.signups||[]).forEach(function(s){
         if(String(s.familyId)===String(fid)){
           out.push({ eventName:ev.name, date:ev.date||'', role:r.role, slot:r.slot||'',
-                     session:s.session||'', who:s.name||'', status:s.status||'pending' });
+                     session:s.session||'', who:s.name||'', status:s.status||'pending',
+                     credits:commitCredits_(ev, r, s) });
         }
       });
     });
@@ -440,7 +466,10 @@ function familyCommitments(fid){
 
 function renderCommitments(fid){
   const box=$('pCommit');
-  const all = familyCommitments(fid).filter(function(c){ return notPast_(c.date); });
+  // Show every upcoming shift (any status) AND any shift that's still pending, even if
+  // its event date has passed — a pending shift still needs the coordinator's approval,
+  // so the family should always see it. Past *approved* shifts are done, so we hide them.
+  const all = familyCommitments(fid).filter(function(c){ return notPast_(c.date) || c.status==='pending'; });
   if(!all.length){
     box.innerHTML='<div class="commit-head">Your upcoming shifts</div>'
       +'<div class="commit-empty">Nothing signed up yet — pick an event below to volunteer.</div>';
@@ -452,10 +481,11 @@ function renderCommitments(fid){
     const pill = c.status==='approved'
       ? '<span class="cpill ok">Approved</span>'
       : '<span class="cpill pend">Pending</span>';
+    const cr = '<span class="commit-cr">'+c.credits+' '+(c.credits===1?'credit':'credits')+'</span>';
     return '<div class="commit-row"><div class="commit-main">'
       +'<div class="commit-role">'+esc(c.role)+(sub?' <span class="commit-sub">· '+esc(sub)+'</span>':'')+'</div>'
       +'<div class="commit-ev">'+esc(c.eventName)+' — '+esc(when)+(c.who?' · '+esc(c.who):'')+'</div>'
-      +'</div>'+pill+'</div>';
+      +'</div><div class="commit-right">'+cr+pill+'</div></div>';
   }).join('');
   box.innerHTML='<div class="commit-head">Your upcoming shifts</div><div class="commit-list">'+rows+'</div>';
 }
