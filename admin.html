@@ -114,6 +114,40 @@ tr:last-child td{border-bottom:none}
 .guide b{color:var(--ink)}
 .guide .lead{font-size:13.5px;color:var(--muted);margin:0 0 12px}
 .guide .step{font-weight:700;color:var(--teal)}
+
+/* Collapsible help — Add a new season walkthrough */
+.help{border:1px solid var(--line);border-radius:var(--radius-sm);background:#FBFCFD;margin-top:12px;overflow:hidden}
+.help>summary{list-style:none;cursor:pointer;padding:12px 13px;font-size:13px;font-weight:700;color:var(--teal-dark);
+  display:flex;align-items:center;gap:8px;user-select:none}
+.help>summary::-webkit-details-marker{display:none}
+.help>summary .chev{flex-shrink:0;transition:transform .15s;stroke:currentColor;fill:none;stroke-width:2.5}
+.help[open]>summary{border-bottom:1px solid var(--line-soft)}
+.help[open]>summary .chev{transform:rotate(90deg)}
+.help>summary:hover{background:var(--teal-tint)}
+.help-body{padding:8px 16px 16px}
+.help-body h4{font-size:12.5px;font-weight:800;letter-spacing:.02em;color:var(--ink);margin:16px 0 7px;text-transform:uppercase}
+.help-body h4:first-child{margin-top:8px}
+.help-body ol{margin:0;padding-left:22px}
+.help-body ol li{font-size:13px;line-height:1.6;margin-bottom:9px;color:var(--ink)}
+.help-body ol li b{color:var(--ink)}
+.help-body p{font-size:13px;line-height:1.55;color:var(--muted);margin:0 0 10px}
+.help-body code{background:#EEF2F4;border:1px solid var(--line);border-radius:4px;padding:1px 5px;
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--ink);word-break:break-all}
+.help-body code b{background:#FFE9A8;color:#5a4500;padding:0 2px;border-radius:2px}
+.help-note{display:flex;gap:8px;border-radius:var(--radius-sm);padding:10px 12px;font-size:12.5px;line-height:1.5;margin:12px 0}
+.help-note svg{width:16px;height:16px;flex-shrink:0;margin-top:1px;fill:none;stroke-width:2.2}
+.help-note.warn{background:var(--warn-tint);border:1px solid #F0D690;color:#6b4e00}
+.help-note.warn svg{stroke:#9A6700}
+.help-note.bad{background:var(--bad-tint);border:1px solid #f3c9c4;color:#7a1d14}
+.help-note.bad svg{stroke:#B42318}
+.help-note.ok{background:var(--ok-tint);border:1px solid #bfe3cc;color:#155f33}
+.help-note.ok svg{stroke:#1f8a4c}
+.help-tabs{width:100%;border-collapse:collapse;margin:4px 0 6px;font-size:12.5px}
+.help-tabs th,.help-tabs td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top;line-height:1.45}
+.help-tabs th{background:#F4F6F7;font-weight:700;color:var(--ink);white-space:nowrap}
+.help-tabs td b{color:var(--ink)}
+.help-keep{color:var(--ok);font-weight:800}
+.help-clear{color:var(--bad);font-weight:800}
 .row-pending{background:#FFFBF0}
 
 /* Forms */
@@ -360,7 +394,55 @@ tr:last-child td{border-bottom:none}
           <input type="text" id="nsFile" placeholder="Google Sheet File ID for the new season">
         </div>
         <button class="btn primary" id="addSeasonBtn">Add season</button>
-        <p class="sub" style="margin-top:8px">Create a fresh blank Google Sheet for each season, paste its File ID here. Tabs are built automatically. Families do <b>not</b> carry over — re-add returning families in the new season file (or copy the Families tab).</p>
+        <p class="sub" style="margin-top:8px">Each season lives in its own Google Sheet. The easiest way is to <b>make a copy of last season's sheet</b> so returning families carry over, then clear out last year's activity. Full instructions below.</p>
+
+        <details class="help">
+          <summary><svg class="chev" viewBox="0 0 24 24" width="14" height="14"><path d="M9 6l6 6-6 6"/></svg>How to add a new season — step by step</summary>
+          <div class="help-body">
+
+            <p>Pick <b>one</b> of the two methods below. The copy method is recommended because your family roster carries forward.</p>
+
+            <h4>Method A — Copy last season's sheet (recommended)</h4>
+            <ol>
+              <li><b>Open last season's Google Sheet.</b> It's the file this tracker is currently using. If you're not sure which one, ask whoever set up the tracker, or find it in the Google Drive of the account that owns it. Open it in Google Sheets.</li>
+              <li><b>Make a copy.</b> In the menu bar choose <b>File → Make a copy</b>. (Or in Google Drive: right-click the file → <b>Make a copy</b>.) A new file called "Copy of …" is created.</li>
+              <li><b>Rename the copy.</b> Click the file name at the top-left and rename it clearly, e.g. <code>13th Ave BMX Volunteer Tracker — 2027</code>. This is just a label for humans; it doesn't affect anything.</li>
+              <li><b>Clear out last season's activity.</b> Along the bottom of the sheet are tabs (Families, Events, Log, Settings, Tasks). On each tab, keep <b>row 1</b> (the bold headers) and only change the rows below it, per this table:
+                <table class="help-tabs">
+                  <tr><th>Tab</th><th>Do this</th></tr>
+                  <tr><td>Families</td><td><span class="help-keep">KEEP</span> — this is the whole reason to copy. Returning families carry over.</td></tr>
+                  <tr><td>Log</td><td><span class="help-clear">CLEAR</span> — delete every row below the header. <b>This must be empty</b>, or last year's shifts would count toward this year's bonds.</td></tr>
+                  <tr><td>Events</td><td><span class="help-clear">CLEAR</span> — last season's races and dates don't apply to the new year.</td></tr>
+                  <tr><td>Tasks</td><td><span class="help-clear">CLEAR</span> — coordinator to-dos were tied to last season's events.</td></tr>
+                  <tr><td>Settings</td><td><span class="help-keep">KEEP</span> — you'll update the season name, dates, and bond note in step 7.</td></tr>
+                </table>
+                <span style="font-size:12.5px;color:var(--muted)">To clear a tab: click the <b>row 2</b> number on the left to select that whole row, scroll to the bottom, hold <b>Shift</b> and click the last row's number to select everything in between, then right-click the selection → <b>Delete rows</b>. Leave row 1 alone.</span>
+              </li>
+              <li><b>Copy the new sheet's File ID.</b> Look at the web address in your browser while the new sheet is open. It looks like this:<br>
+                <code>https://docs.google.com/spreadsheets/d/<b>1AbCd…XyZ</b>/edit</code><br>
+                The File ID is the long string <b>between <code>/d/</code> and <code>/edit</code></b>. Select just that part and copy it.</li>
+              <li><b>Fill in the form above and click Add season.</b> Enter the <b>Year</b> (e.g. 2027), a <b>Season name</b> (e.g. "2027 Season"), and paste the <b>File ID</b>. Then click <b>Add season</b>. The new season appears in the Seasons list.</li>
+              <li><b>Make it active.</b> In the Seasons list above, click <b>Make active</b> next to the new season. The whole app now reads and writes to the new sheet.</li>
+              <li><b>Set the season details.</b> Scroll up to <b>Season setup</b> at the top of this page and update the season name, the season window (dates), credits required for the bond, and the bond note. Click <b>Save settings</b>.</li>
+              <li><b>Review the families.</b> Open the <b>Families</b> tab in this app. Remove any families who didn't return, add new ones, and double-check the board-member flags — board membership can change from year to year.</li>
+            </ol>
+
+            <div class="help-note ok"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg><span><b>Good news:</b> your saved role presets and task templates are <b>not</b> stored in the sheet, so they're already available in every new season. You never have to rebuild those.</span></div>
+
+            <div class="help-note warn"><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span><b>Permissions:</b> the new sheet must be owned by — or shared (Editor access) with — the <b>same Google account that owns this tracker's script</b>. If a different person makes the copy, share it back to that account first, or "Add season" will fail with a permission error.</span></div>
+
+            <div class="help-note bad"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg><span><b>Never</b> point a new season at the current season's File ID — they would share the same data. Each season always needs its own separate file.</span></div>
+
+            <h4>Method B — Start from a blank sheet (faster, but no families)</h4>
+            <ol>
+              <li>Create a brand-new blank Google Sheet (<b>sheet.new</b> in the browser, or Drive → <b>New → Google Sheets</b>).</li>
+              <li>Rename it and copy its <b>File ID</b> from the address bar (same as step 5 above).</li>
+              <li>Enter the Year, Season name, and File ID in the form above, then <b>Add season</b> → <b>Make active</b> → set the season details. The tabs are built automatically.</li>
+            </ol>
+            <p>With this method the family roster does <b>not</b> carry over, so you'll re-add every family in the Families tab.</p>
+
+          </div>
+        </details>
       </div>
     </div>
   </div>
