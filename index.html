@@ -285,7 +285,7 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
    This is the only line you ever change in this file.
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
-const APP_VERSION = '2026.06.24-1';
+const APP_VERSION = '2026.06.24-2';
 
 /* ---- State ---- */
 let SETTINGS = {bondCredits:10, seasonLabel:'', seasonWindow:'', bondNote:''};
@@ -534,9 +534,10 @@ async function submitShift(){
       familyId:fid, guest:isGuest, club:club, eventId:CUR_EVENT.eventId, eventName:CUR_EVENT.name,
       session:SESSION, volunteer:vol
     }, spots:spots});
-    // refresh data so spot counts + progress (incl. the new shifts) update, keep family selected
-    EVENTS = await apiGet('getEvents');
-    FAMILIES = await apiGet('getFamilies');
+    // The write now returns fresh data in the same response (one round-trip instead
+    // of three). Fall back to GETs only if the backend hasn't been redeployed yet.
+    EVENTS   = res.events   || await apiGet('getEvents');
+    FAMILIES = res.families || await apiGet('getFamilies');
     showProgress(fid);
     if(res.logged>0){
       const summary = isGuest

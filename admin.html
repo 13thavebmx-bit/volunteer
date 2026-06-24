@@ -458,7 +458,7 @@ tr:last-child td{border-bottom:none}
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
 const PW  = '13thAveVol';   // ← change this to your coordinator password
-const APP_VERSION = '2026.06.24-1';   // version of THIS admin page (GitHub)
+const APP_VERSION = '2026.06.24-2';   // version of THIS admin page (GitHub)
 let LIVE_VERSION = null;              // version reported by the deployed backend
 
 /* Roles a new BLANK event starts with — left empty (no pre-named roles) so you
@@ -632,8 +632,10 @@ async function manualAdd(){
   $('mAddBtn').disabled=true;
   BUSY=true;
   try{
-    await apiPost('logVolunteer',{entry:{familyId:fid,eventId:ev.eventId,eventName:ev.name,role:r.role,slot:r.slot||'',session:'',credits:r.credits,volunteer:vol,override:true}});
-    EVENTS=await apiGet('getEvents'); LOG=await apiGet('getLog'); FAMILIES=await apiGet('getFamilies');
+    const res=await apiPost('logVolunteer',{entry:{familyId:fid,eventId:ev.eventId,eventName:ev.name,role:r.role,slot:r.slot||'',session:'',credits:r.credits,volunteer:vol,override:true}});
+    EVENTS   = res.events   || await apiGet('getEvents');
+    LOG      = res.log      || await apiGet('getLog');
+    FAMILIES = res.families || await apiGet('getFamilies');
     $('mRole').value=''; $('mVol').value='';
     renderAll(); toast('Shift added — pending approval','ok');
   }catch(err){ toast(err.message,'err'); }
@@ -682,7 +684,9 @@ async function importCsv(){
   BUSY=true;
   try{
     const res=await apiPost('importShifts',{rows,status});
-    EVENTS=await apiGet('getEvents'); LOG=await apiGet('getLog'); FAMILIES=await apiGet('getFamilies');
+    EVENTS   = res.events   || await apiGet('getEvents');
+    LOG      = res.log      || await apiGet('getLog');
+    FAMILIES = res.families || await apiGet('getFamilies');
     renderAll();
     toast(`Imported ${res.imported} shift${res.imported===1?'':'s'}`+(res.errors.length?` · ${res.errors.length} skipped`:''), res.errors.length?'':'ok');
     if(res.errors.length){
@@ -707,10 +711,11 @@ async function decide(logId,status,btn,note){
   try{
     const payload={logId,status};
     if(note!==undefined) payload.note=note;
-    await apiPost('updateEntryStatus',payload);
-    const e=LOG.find(l=>String(l.logId)===String(logId)); if(e){ e.status=status; if(note!==undefined) e.note=note; }
-    EVENTS = await apiGet('getEvents');     // spot counts change when a spot is freed/refilled
-    FAMILIES = await apiGet('getFamilies');
+    const res=await apiPost('updateEntryStatus',payload);
+    if(res.log){ LOG=res.log; }
+    else { const e=LOG.find(l=>String(l.logId)===String(logId)); if(e){ e.status=status; if(note!==undefined) e.note=note; } }
+    EVENTS   = res.events   || await apiGet('getEvents');   // spot counts change when a spot is freed/refilled
+    FAMILIES = res.families || await apiGet('getFamilies');
     renderAll();
     const msg={approved:'Approved',rejected:'Rejected',released:'Spot released — it\u2019s open again',pending:'Restored to pending'}[status]||'Updated';
     toast(msg, (status==='approved'||status==='released'||status==='pending')?'ok':'');
