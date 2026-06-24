@@ -678,8 +678,12 @@ function renderApprovals(){
   $('apvPill').style.display=pend.length?'flex':'none';
   $('apvSub').textContent=pend.length?`${pend.length} waiting`:'';
   if(!pend.length){ $('approvals').innerHTML=emptyMsg('All caught up — no shifts waiting for review.'); return; }
-  const rows=pend.map(l=>`<tr class="row-pending" data-id="${l.logId}">
-      <td><b>${esc(l.surname)}</b><div style="font-size:11.5px;color:var(--muted)">${esc(l.eventName)}${l.session?' · '+esc(l.session):''}</div></td>
+  const evById=EVENTS.reduce((m,e)=>{ m[String(e.eventId)]=e; return m; },{});
+  const rows=pend.map(l=>{
+    const ev=evById[String(l.eventId)];
+    const evDate=ev&&ev.date?fmtDate_(ev.date):'';
+    return `<tr class="row-pending" data-id="${l.logId}">
+      <td><b>${esc(l.surname)}</b><div style="font-size:11.5px;color:var(--muted);margin-top:2px">${esc(l.eventName)}${evDate?' — <span style="color:var(--ink);font-weight:700">'+esc(evDate)+'</span>':''}${l.session?' · '+esc(l.session):''}</div></td>
       <td>${esc(l.role)}${l.slot?' <span style="color:var(--muted)">· '+esc(l.slot)+'</span>':''}${l.volunteer?`<div style="font-size:11.5px;color:var(--muted)">${esc(l.volunteer)}</div>`:''}</td>
       <td class="num">${l.credits}</td>
       <td style="white-space:nowrap">
@@ -687,7 +691,8 @@ function renderApprovals(){
         <button class="btn sm red" data-act="rejected" data-id="${l.logId}"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
         <button class="btn sm ghost" data-act="released" data-id="${l.logId}" title="Free up this spot — it reopens for others, no rejection">Release</button>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   $('approvals').innerHTML=`<table><thead><tr><th>Family / event</th><th>Role / volunteer</th><th>Credits</th><th>Decision</th></tr></thead><tbody>${rows}</tbody></table>`;
   $('approvals').querySelectorAll('button[data-act]').forEach(b=>{
     b.addEventListener('click',()=>decide(b.dataset.id,b.dataset.act,b));
