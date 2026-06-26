@@ -699,22 +699,22 @@ function renderApprovals(){
   const keep=fsel?fsel.value:'';
   const seen={};
   allPend.forEach(l=>{ const id=String(l.eventId||''); if(id&&!seen[id]){ const e=evById[id]; seen[id]={id:id, name:(e?e.name:l.eventName)||'(event)', date:e?e.date:''}; } });
-  const opts=Object.keys(seen).map(id=>seen[id]).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+  const opts=Object.keys(seen).map(id=>seen[id]).sort((a,b)=>{ const da=a.date||'', db=b.date||''; if(da&&!db) return -1; if(!da&&db) return 1; return da.localeCompare(db); });
   if(fsel){
     fsel.innerHTML='<option value="">All events</option>'+opts.map(o=>`<option value="${esc(o.id)}">${esc(o.name)}${o.date?' — '+esc(fmtDate_(o.date)):''}</option>`).join('');
     fsel.value=keep; // preserve selection across refreshes
   }
   const fe=fsel?fsel.value:'';
-  // Filter, then sort by event date newest→oldest (undated last; group same date by event, then family).
+  // Filter, then sort by event date oldest→newest (undated last; group same date by event, then family).
   const dateOf=l=>{ const e=evById[String(l.eventId)]; return e&&e.date?String(e.date):''; };
   const pend=allPend.filter(l=>!fe || String(l.eventId)===String(fe)).sort((a,b)=>{
     const da=dateOf(a), db=dateOf(b);
     if(da&&!db) return -1;
     if(!da&&db) return 1;
-    if(da&&db&&da!==db) return db.localeCompare(da);
+    if(da&&db&&da!==db) return da.localeCompare(db);
     const na=String(a.eventName||''), nb=String(b.eventName||''); if(na!==nb) return na.localeCompare(nb);
     const sa=String(a.surname||''), sb=String(b.surname||''); if(sa!==sb) return sa.localeCompare(sb);
-    return String(b.logId||'').localeCompare(String(a.logId||''));
+    return String(a.logId||'').localeCompare(String(b.logId||''));
   });
   const showing = fe ? `<div class="sub" style="padding:10px 12px 0">Showing ${pend.length} of ${allPend.length} waiting</div>` : '';
   const rows=pend.map(l=>{
