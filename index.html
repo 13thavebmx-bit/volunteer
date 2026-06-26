@@ -359,42 +359,51 @@ function renderFamilies(){
     +FAMILIES.map(f=>`<option value="${f.familyId}">${esc(f.surname)}</option>`).join('')
     +'</optgroup>';
 }
-// Signup window: events show from the start of today through this many days ahead.
-// Change this one number to widen/narrow the list (e.g. 5 for a tighter view, 10 for more).
-const SIGNUP_WINDOW_DAYS = 7;
-function windowRange_(){
-  const start=new Date(); start.setHours(0,0,0,0);
-  const end=new Date(start); end.setDate(start.getDate()+SIGNUP_WINDOW_DAYS); end.setHours(23,59,59,999);
-  return [start,end];
-}
-function inWindow_(dateStr){
-  if(!dateStr) return true; // undated standing events stay available
-  const p=String(dateStr).split('-'); if(p.length<3) return true;
-  const d=new Date(+p[0],+p[1]-1,+p[2]);
-  const [start,end]=windowRange_();
-  return d>=start && d<=end;
+// Event list rules. Two knobs you can tweak:
+const UPCOMING_EVENTS_SHOWN = 5; // how many upcoming events to list (today onward)
+const GRACE_DAYS = 1;            // also keep this many past days, so someone who forgot
+                                 // to sign up can still log a just-finished shift (it lands
+                                 // as pending like any other, so there's no risk).
+function evDate_(s){
+  if(!s) return null;
+  const p=String(s).split('-'); if(p.length<3) return null;
+  const d=new Date(+p[0],+p[1]-1,+p[2]); d.setHours(0,0,0,0);
+  return isNaN(d)?null:d;
 }
 function notPast_(dateStr){
-  if(!dateStr) return true;
-  const p=String(dateStr).split('-'); if(p.length<3) return true;
-  const d=new Date(+p[0],+p[1]-1,+p[2]);
+  const d=evDate_(dateStr); if(!d) return true; // undated standing events count as upcoming
   const today=new Date(); today.setHours(0,0,0,0);
   return d>=today;
 }
-function evLabel_(s){ if(!s) return ''; const p=String(s).split('-'); if(p.length<3) return ' — '+s; const d=new Date(+p[0],+p[1]-1,+p[2]); return isNaN(d)?(' — '+s):(' — '+d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})); }
+function evLabel_(s){ if(!s) return ''; const d=evDate_(s); return d?(' — '+d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'})):(' — '+s); }
 function renderEvents(){
   const sel=$('event');
-  // Events within the rolling window (today + next SIGNUP_WINDOW_DAYS days), plus any
-  // flagged "early signup" event that hasn't happened yet (shown ahead of the window with a ★).
-  const wk=EVENTS.filter(e=>e.status!=='cancelled' && (inWindow_(e.date) || (e.featured && notPast_(e.date))))
-                 .sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
-  if(!wk.length){
+  const today=new Date(); today.setHours(0,0,0,0);
+  const graceStart=new Date(today); graceStart.setDate(today.getDate()-GRACE_DAYS);
+
+  const active=EVENTS.filter(e=>e.status!=='cancelled');
+  const undated=active.filter(e=>!evDate_(e.date));                 // standing events, always available
+  const dated=active.filter(e=>evDate_(e.date))
+                    .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+
+  const upcoming=dated.filter(e=>evDate_(e.date)>=today).slice(0, UPCOMING_EVENTS_SHOWN); // next N
+  const grace=dated.filter(e=>{ const d=evDate_(e.date); return d>=graceStart && d<today; }); // yesterday grace
+  const inMain={}; upcoming.concat(grace).forEach(e=>inMain[e.eventId]=1);
+  // featured "early signup" events further out than the N shown still appear (marked with ★)
+  const featured=dated.filter(e=>e.featured && evDate_(e.date)>=today && !inMain[e.eventId]);
+
+  const list=grace.concat(upcoming, featured)
+                  .sort((a,b)=>String(a.date).localeCompare(String(b.date)))
+                  .concat(undated);
+
+  if(!list.length){
     sel.innerHTML='<option value="">No events open for signup right now</option>';
     sel.disabled=true; return;
   }
   sel.disabled=false;
+  const featSet={}; featured.forEach(e=>featSet[e.eventId]=1);
   sel.innerHTML='<option value="">Select an event…</option>'+
-    wk.map(e=>{ const early=e.featured && !inWindow_(e.date); return `<option value="${e.eventId}">${early?'★ ':''}${esc(e.name)}${evLabel_(e.date)}</option>`; }).join('');
+    list.map(e=>`<option value="${e.eventId}">${featSet[e.eventId]?'★ ':''}${esc(e.name)}${evLabel_(e.date)}</option>`).join('');
 }
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
