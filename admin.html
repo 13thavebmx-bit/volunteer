@@ -279,7 +279,12 @@ tr:last-child td{border-bottom:none}
         <div id="impResult" style="margin-top:10px;font-size:12.5px;line-height:1.55"></div>
       </div>
     </div>
-    <div class="card"><div id="approvals"></div></div>
+    <div class="card">
+      <div id="apvFilterRow" style="padding:12px 14px;border-bottom:1px solid var(--line-soft);display:none">
+        <select id="apvEvent" style="width:100%;max-width:360px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font);background:#fff"><option value="">All events</option></select>
+      </div>
+      <div id="approvals"></div>
+    </div>
   </div>
 
   <!-- FAMILIES -->
@@ -678,12 +683,40 @@ function renderDash(){
 /* ---- Approvals ---- */
 function renderApprovals(){
   renderManualAdd();
-  const pend=LOG.filter(l=>l.status==='pending' && !l.eventCancelled);
-  $('apvPill').textContent=pend.length;
-  $('apvPill').style.display=pend.length?'flex':'none';
-  $('apvSub').textContent=pend.length?`${pend.length} waiting`:'';
-  if(!pend.length){ $('approvals').innerHTML=emptyMsg('All caught up — no shifts waiting for review.'); return; }
   const evById=EVENTS.reduce((m,e)=>{ m[String(e.eventId)]=e; return m; },{});
+  const allPend=LOG.filter(l=>l.status==='pending' && !l.eventCancelled);
+  $('apvPill').textContent=allPend.length;
+  $('apvPill').style.display=allPend.length?'flex':'none';
+  $('apvSub').textContent=allPend.length?`${allPend.length} waiting`:'';
+  const filterRow=$('apvFilterRow'), fsel=$('apvEvent');
+  if(!allPend.length){
+    if(filterRow) filterRow.style.display='none';
+    $('approvals').innerHTML=emptyMsg('All caught up — no shifts waiting for review.');
+    return;
+  }
+  if(filterRow) filterRow.style.display='';
+  // Event filter options = events that actually have pending approvals, newest date first.
+  const keep=fsel?fsel.value:'';
+  const seen={};
+  allPend.forEach(l=>{ const id=String(l.eventId||''); if(id&&!seen[id]){ const e=evById[id]; seen[id]={id:id, name:(e?e.name:l.eventName)||'(event)', date:e?e.date:''}; } });
+  const opts=Object.keys(seen).map(id=>seen[id]).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+  if(fsel){
+    fsel.innerHTML='<option value="">All events</option>'+opts.map(o=>`<option value="${esc(o.id)}">${esc(o.name)}${o.date?' — '+esc(fmtDate_(o.date)):''}</option>`).join('');
+    fsel.value=keep; // preserve selection across refreshes
+  }
+  const fe=fsel?fsel.value:'';
+  // Filter, then sort by event date newest→oldest (undated last; group same date by event, then family).
+  const dateOf=l=>{ const e=evById[String(l.eventId)]; return e&&e.date?String(e.date):''; };
+  const pend=allPend.filter(l=>!fe || String(l.eventId)===String(fe)).sort((a,b)=>{
+    const da=dateOf(a), db=dateOf(b);
+    if(da&&!db) return -1;
+    if(!da&&db) return 1;
+    if(da&&db&&da!==db) return db.localeCompare(da);
+    const na=String(a.eventName||''), nb=String(b.eventName||''); if(na!==nb) return na.localeCompare(nb);
+    const sa=String(a.surname||''), sb=String(b.surname||''); if(sa!==sb) return sa.localeCompare(sb);
+    return String(b.logId||'').localeCompare(String(a.logId||''));
+  });
+  const showing = fe ? `<div class="sub" style="padding:10px 12px 0">Showing ${pend.length} of ${allPend.length} waiting</div>` : '';
   const rows=pend.map(l=>{
     const ev=evById[String(l.eventId)];
     const evDate=ev&&ev.date?fmtDate_(ev.date):'';
@@ -698,7 +731,7 @@ function renderApprovals(){
       </td>
     </tr>`;
   }).join('');
-  $('approvals').innerHTML=`<table><thead><tr><th>Family / event</th><th>Role / volunteer</th><th>Credits</th><th>Decision</th></tr></thead><tbody>${rows}</tbody></table>`;
+  $('approvals').innerHTML=showing+`<table><thead><tr><th>Family / event</th><th>Role / volunteer</th><th>Credits</th><th>Decision</th></tr></thead><tbody>${rows}</tbody></table>`;
   $('approvals').querySelectorAll('button[data-act]').forEach(b=>{
     b.addEventListener('click',()=>decide(b.dataset.id,b.dataset.act,b));
   });
@@ -1257,6 +1290,7 @@ $('fltFam').addEventListener('change',renderLog);
 $('fltStatus').addEventListener('change',renderLog);
 $('fltEvent').addEventListener('change',renderLog);
 $('fltTime').addEventListener('change',renderLog);
+$('apvEvent').addEventListener('change',renderApprovals);
 $('saveSettings').addEventListener('click',saveSettings);
 $('addSeasonBtn').addEventListener('click',addSeason);
 $('expStandings').addEventListener('click',exportStandings);
