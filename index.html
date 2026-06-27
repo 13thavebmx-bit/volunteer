@@ -148,6 +148,11 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
 .cpill{flex-shrink:0;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:4px 9px;border-radius:20px}
 .commit-right{flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
 .commit-cr{font-size:11px;font-weight:700;color:var(--teal-dark);white-space:nowrap}
+.namechips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.namechips-lbl{font-size:11.5px;color:var(--muted);margin-right:2px}
+.namechip{font:inherit;font-size:12.5px;font-weight:600;color:var(--teal-dark);background:var(--teal-tint);border:1px solid #bfe0e6;border-radius:20px;padding:5px 12px;cursor:pointer}
+.namechip:hover{background:#d4eef2}
+.namechip:active{transform:translateY(1px)}
 .cpill.ok{background:var(--ok-tint);color:var(--ok)}
 .cpill.pend{background:var(--warn-tint);color:var(--warn)}
 
@@ -231,6 +236,7 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
 
       <label for="vol">Volunteer name <span class="req" title="Required">*</span></label>
       <input type="text" id="vol" placeholder="Who's doing the shift(s)?" autocomplete="off" aria-required="true" required>
+      <div class="namechips" id="nameChips"></div>
 
       <label for="event">Event</label>
       <select id="event"><option value="">Select an event…</option></select>
@@ -292,7 +298,7 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
    This is the only line you ever change in this file.
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
-const APP_VERSION = '2026.06.24-2';
+const APP_VERSION = '2026.06.24-3';
 
 /* ---- State ---- */
 let SETTINGS = {bondCredits:10, seasonLabel:'', seasonWindow:'', bondNote:''};
@@ -410,7 +416,7 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','
 function showProgress(fid){
   const f = FAMILIES.find(x=>String(x.familyId)===String(fid));
   const box=$('progress');
-  if(!f){ box.classList.remove('show'); $('pCommit').innerHTML=''; $('pNote').style.display='none'; return; }
+  if(!f){ box.classList.remove('show'); $('pCommit').innerHTML=''; $('pNote').style.display='none'; $('nameChips').innerHTML=''; return; }
   const need = SETTINGS.bondCredits;
   box.classList.add('show');
   $('pName').textContent = f.surname;
@@ -441,6 +447,13 @@ function showProgress(fid){
   pn.innerHTML='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 7v5l3 2"/></svg>'
     +'<span>Shifts you sign up for show as <b>pending</b> until the coordinator approves them — usually after you\u2019ve completed your role at the event.</span>';
   renderCommitments(fid);
+  // Quick-pick of names this family has signed up under before — grows as they use it.
+  const nc=$('nameChips');
+  const names=f.volunteers||[];
+  if(names.length){
+    nc.innerHTML='<span class="namechips-lbl">Tap a name:</span>'+names.map(n=>`<button type="button" class="namechip" data-name="${esc(n)}">${esc(n)}</button>`).join('');
+    nc.querySelectorAll('button[data-name]').forEach(b=>b.addEventListener('click',()=>{ $('vol').value=b.dataset.name; refreshSubmit(); $('vol').focus(); }));
+  } else { nc.innerHTML=''; }
 }
 
 /* Collect every shift this family is signed up for (pending + approved),
@@ -618,14 +631,24 @@ function bindEvents(){
     e.preventDefault();
     const fid=$('family').value;
     const fam = fid==='GUEST' ? ('Guest'+(clubValue()?(' — '+clubValue()):'')) : ((FAMILIES.find(f=>String(f.familyId)===String(fid))||{}).surname||'');
-    const ev = CUR_EVENT ? (CUR_EVENT.name+(CUR_EVENT.date?(' ('+CUR_EVENT.date+')'):'')) : '';
+    let shifts='';
+    if(fid && fid!=='GUEST'){
+      const list=familyCommitments(fid).filter(c=>notPast_(c.date)||c.status==='pending');
+      if(list.length){
+        shifts='\nMy current shifts:\n'+list.map(c=>{
+          const when=c.date?evLabel_(c.date).replace(/^ — /,''):'no date';
+          const sub=[c.slot,c.session].filter(Boolean).join(' · ');
+          return '  - '+c.role+(sub?' ('+sub+')':'')+' · '+c.eventName+' — '+when+(c.who?' · '+c.who:'')+' ['+c.status+']';
+        }).join('\n')+'\n';
+      }
+    }
+    const name=$('vol').value.trim();
     const body='Hi 13th Ave volunteer coordinator,\n\nI need to change or cancel a volunteer shift.\n\n'
-      +'Name: '+$('vol').value.trim()+'\n'
       +'Family / club: '+fam+'\n'
-      +'Event: '+ev+'\n'
-      +'Role / time: \n'
-      +'What needs to change: \n\nThanks!';
-    window.location.href='mailto:volunteers@13thavebmx.com?subject='+encodeURIComponent('Volunteer shift change request')+'&body='+encodeURIComponent(body);
+      +(name?('Name: '+name+'\n'):'')
+      +shifts
+      +'\nWhich shift, and what should change (cancel it / swap the person / etc.):\n\n\nThanks!';
+    window.location.href='mailto:volunteers@13thavebmx.com?subject='+encodeURIComponent('Volunteer shift change/cancel — '+(fam||'13th Ave BMX'))+'&body='+encodeURIComponent(body);
   });
   $('vol').addEventListener('input', refreshSubmit);
   $('event').addEventListener('change', onEventChange);

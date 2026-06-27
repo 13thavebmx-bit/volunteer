@@ -280,8 +280,9 @@ tr:last-child td{border-bottom:none}
       </div>
     </div>
     <div class="card">
-      <div id="apvFilterRow" style="padding:12px 14px;border-bottom:1px solid var(--line-soft);display:none">
-        <select id="apvEvent" style="width:100%;max-width:360px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font);background:#fff"><option value="">All events</option></select>
+      <div id="apvFilterRow" style="padding:12px 14px;border-bottom:1px solid var(--line-soft);display:none;align-items:center;gap:10px;flex-wrap:wrap">
+        <select id="apvEvent" style="flex:1;min-width:200px;max-width:360px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font);background:#fff"><option value="">All events</option></select>
+        <button class="btn sm green" id="apvApproveAll" style="white-space:nowrap"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 6"/></svg> <span id="apvApproveAllLabel">Approve all shown</span></button>
       </div>
       <div id="approvals"></div>
     </div>
@@ -297,6 +298,13 @@ tr:last-child td{border-bottom:none}
           <input type="text" id="newFam" placeholder="Family surname (e.g. Fellner)">
           <button class="btn primary" id="addFamBtn">Add</button>
         </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">Bond / refund report <span style="font-weight:400;color:var(--muted);font-size:11.5px">— who's covered, who's short</span></div>
+      <div style="padding:12px 14px">
+        <div id="reportSummary" class="sub" style="margin-bottom:10px;font-size:13px"></div>
+        <button class="btn sm" id="reportExport"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export refund report (CSV)</button>
       </div>
     </div>
     <div class="card"><div id="famList"></div></div>
@@ -561,7 +569,7 @@ tr:last-child td{border-bottom:none}
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
 const PW  = '13thAveVol';   // ← change this to your coordinator password
-const APP_VERSION = '2026.06.24-2';   // version of THIS admin page (GitHub)
+const APP_VERSION = '2026.06.24-3';   // version of THIS admin page (GitHub)
 let LIVE_VERSION = null;              // version reported by the deployed backend
 
 /* Roles a new BLANK event starts with — left empty (no pre-named roles) so you
@@ -573,6 +581,7 @@ let SETTINGS={bondCredits:10}, FAMILIES=[], EVENTS=[], LOG=[], SEASONS={seasons:
 let PRESETS=[], EVENT_TYPES=[];
 let BUSY=false;          // true while a write is in flight — pauses the auto-refresh
 let AUTO_TIMER=null;     // 30s background poll so new signups appear without a manual reload
+let APV_SHOWN=[];        // logIds currently shown in Approvals (for "Approve all shown")
 
 /* ---- API ---- */
 async function apiGet(action, params={}){
@@ -701,9 +710,9 @@ function renderApprovals(){
   if(!allPend.length){
     if(filterRow) filterRow.style.display='none';
     $('approvals').innerHTML=emptyMsg('All caught up — no shifts waiting for review.');
-    return;
+    APV_SHOWN=[]; return;
   }
-  if(filterRow) filterRow.style.display='';
+  if(filterRow) filterRow.style.display='flex';
   // Event filter options = events that actually have pending approvals, newest date first.
   const keep=fsel?fsel.value:'';
   const seen={};
@@ -726,6 +735,8 @@ function renderApprovals(){
     return String(a.logId||'').localeCompare(String(b.logId||''));
   });
   const showing = fe ? `<div class="sub" style="padding:10px 12px 0">Showing ${pend.length} of ${allPend.length} waiting</div>` : '';
+  APV_SHOWN = pend.map(l=>String(l.logId));
+  const apvBtnLabel=$('apvApproveAllLabel'); if(apvBtnLabel) apvBtnLabel.textContent='Approve all '+pend.length+' shown';
   const rows=pend.map(l=>{
     const ev=evById[String(l.eventId)];
     const evDate=ev&&ev.date?fmtDate_(ev.date):'';
@@ -836,6 +847,24 @@ async function importCsv(){
   finally{ BUSY=false; }
   $('impBtn').disabled=false;
 }
+async function approveAllShown(){
+  const ids=APV_SHOWN.slice();
+  if(!ids.length) return;
+  const n=ids.length;
+  if(!confirm('Approve all '+n+' shift'+(n===1?'':'s')+' shown? Their credits will count toward each family\u2019s bond.')) return;
+  const btn=$('apvApproveAll'); if(btn) btn.disabled=true;
+  BUSY=true;
+  try{
+    const res=await apiPost('updateEntryStatuses',{logIds:ids, status:'approved'});
+    if(res.log){ LOG=res.log; }
+    EVENTS   = res.events   || await apiGet('getEvents');
+    FAMILIES = res.families || await apiGet('getFamilies');
+    renderAll();
+    toast('Approved '+(res.updated!=null?res.updated:n)+' shift'+((res.updated!=null?res.updated:n)===1?'':'s'),'ok');
+  }catch(err){ toast(err.message,'err'); if(btn) btn.disabled=false; }
+  finally{ BUSY=false; }
+}
+
 async function decide(logId,status,btn,note){
   if(status==='rejected' && note===undefined){
     const reason=prompt('Reason for rejecting? (optional — leave blank to skip, Cancel to keep it pending)');
@@ -860,7 +889,32 @@ async function decide(logId,status,btn,note){
 }
 
 /* ---- Families ---- */
+function renderReport(){
+  const el=$('reportSummary'); if(!el) return;
+  const need=SETTINGS.bondCredits;
+  if(!FAMILIES.length){ el.textContent='No families registered yet.'; return; }
+  let covered=0, board=0, short=0, shortCredits=0;
+  FAMILIES.forEach(f=>{
+    if(f.board){ board++; covered++; }
+    else if(f.approved>=need){ covered++; }
+    else { short++; shortCredits+=Math.max(0,need-f.approved); }
+  });
+  el.innerHTML=`<b style="color:var(--ink);font-size:15px">${covered}</b> of <b style="color:var(--ink)">${FAMILIES.length}</b> families have met the bond`
+    +(board?` <span style="color:var(--muted-soft)">(incl. ${board} board)</span>`:'')
+    +` · <b style="color:${short?'var(--warn)':'var(--ok)'}">${short}</b> still short`
+    +(short?` <span style="color:var(--muted-soft)">— ${shortCredits} credit${shortCredits===1?'':'s'} to go in total</span>`:'');
+}
+function exportReport(){
+  const need=SETTINGS.bondCredits;
+  const rows=[['Family','Board member','Approved credits','Required','Status','Credits short']];
+  FAMILIES.slice().sort((a,b)=>String(a.surname).localeCompare(String(b.surname))).forEach(f=>{
+    const covered=f.board||f.approved>=need;
+    rows.push([f.surname, f.board?'Yes':'No', f.approved, need, covered?'Bond covered':'Short', covered?0:Math.max(0,need-f.approved)]);
+  });
+  downloadCsv('bond-refund-report.csv',rows);
+}
 function renderFamilies(){
+  renderReport();
   const need=SETTINGS.bondCredits;
   if(!FAMILIES.length){ $('famList').innerHTML=emptyMsg('No families registered yet.'); }
   else{
@@ -1300,6 +1354,8 @@ $('fltStatus').addEventListener('change',renderLog);
 $('fltEvent').addEventListener('change',renderLog);
 $('fltTime').addEventListener('change',renderLog);
 $('apvEvent').addEventListener('change',renderApprovals);
+$('apvApproveAll').addEventListener('click',approveAllShown);
+$('reportExport').addEventListener('click',exportReport);
 $('saveSettings').addEventListener('click',saveSettings);
 $('addSeasonBtn').addEventListener('click',addSeason);
 $('expStandings').addEventListener('click',exportStandings);
