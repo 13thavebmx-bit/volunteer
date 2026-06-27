@@ -500,8 +500,16 @@ tr:last-child td{border-bottom:none}
         <li><b>Repeats → Weekly</b> generates an event on chosen weekdays across a date range (e.g. every Tue/Thu practice all summer).</li>
         <li><b>Open signups early</b> puts a big event (like a provincial) on the volunteer page right away, even weeks out, so people can plan ahead. It shows with a ★.</li>
         <li><b>Needs event planning</b> flags a big event (provincial, major track maintenance) for the separate Events Coordinator app, where you build its task plan. It shows a "Plan needed" badge here.</li>
-        <li><b>Edit</b> any event later; existing signups are never changed by an edit.</li>
+        <li><b>Edit</b> any event later. An edit never deletes existing signups — but read the flag below before <b>renaming</b> a role that already has people signed up.</li>
       </ul>
+      <div class="help-note bad" style="margin-top:12px">
+        <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+        <span><b>🚩 Renaming a role that already has signups.</b> The signups aren't lost — but they stay tied to the <b>old</b> name, so they drop off volunteers' "upcoming shifts" list and that role's spot count resets (it'll look open again and could get over-booked). They still appear in <b>Approvals</b> and the <b>Full log</b> under the old name, and you can still approve them there. <b>Best practice: approve any pending signups for a role before you rename it.</b> Changing the <b>slot</b> label behaves the same way.</span>
+      </div>
+      <div class="help-note ok" style="margin-top:10px">
+        <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+        <span><b>Changing a role's credits only affects new signups.</b> Every signup already made keeps the exact credit it was logged at — and <b>this includes pending shifts</b>: when you approve a pending one later, it banks its <b>original</b> credit, not the new value. Nothing already signed up is ever re-priced. (If you do want to change an existing shift's credit, edit its row in the <b>Log</b> tab of the season sheet, or release it and have the volunteer sign up again.)</span>
+      </div>
       <h3 style="margin-top:14px">Presets — set big events up once</h3>
       <p>A preset is a saved bundle of a type + its full role list. Build a 40-role provincial once, click <b>★ Save these roles as a preset</b>, and name it. Next time, pick it from <b>Start from preset</b> and the whole thing loads, ready to edit. Presets are shared and survive every season.</p>
       <p><b>Custom event types</b> (e.g. "Skills Training Camp"): choose "Other (specify)" in the Type list, type it, and it's remembered in the dropdown from then on.</p>
@@ -537,6 +545,7 @@ tr:last-child td{border-bottom:none}
         <li><b>Backfill a past event's volunteers</b> → Approvals → Import past shifts (CSV).</li>
         <li><b>Get a provincial open for early signups</b> → edit the event, tick "Open signups early."</li>
         <li><b>Thank the out-of-club helpers</b> → Full log, filter/scan for the Guest tag (or export CSV).</li>
+        <li><b>Adjusting a role that has signups</b> → changing credits only affects new signups (everything already signed up, <b>including pending</b>, keeps its original credit); <b>approve pending signups before renaming</b> a role (see the 🚩 in Events &amp; roles).</li>
         <li><b>A family is exempt (board)</b> → Families → toggle Board.</li>
       </ul>
     </div></div>
