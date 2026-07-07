@@ -500,7 +500,7 @@ tr:last-child td{border-bottom:none}
     <div class="card guide"><div style="padding:14px">
       <h3>Families</h3>
       <p>Your club families and their credit standing. Add a family with their surname. Each shows approved credits vs. what's needed, plus anything still pending.</p>
-      <p><b>Board members:</b> toggle the Board switch for a family and their bond is automatically considered met — no credits required. Use it for your board members only.</p>
+      <p><b>Board members:</b> toggle the Board switch for a family and their bond is automatically considered met — no credits required. Use it for your board members only. This same switch is also what lets that family see and log <b>board-only events</b> on the volunteer page (see "Behind-the-scenes hours" below) — non-board families never see them.</p>
     </div></div>
 
     <div class="card guide"><div style="padding:14px">
@@ -512,6 +512,7 @@ tr:last-child td{border-bottom:none}
         <li><b>Repeats → Weekly</b> generates an event on chosen weekdays across a date range (e.g. every Tue/Thu practice all summer).</li>
         <li><b>Open signups early</b> puts a big event (like a provincial) on the volunteer page right away, even weeks out, so people can plan ahead. It shows with a ★.</li>
         <li><b>Needs event planning</b> flags a big event (provincial, major track maintenance) for the separate Events Coordinator app, where you build its task plan. It shows a "Plan needed" badge here.</li>
+        <li><b>Board members only</b> turns an event into a private, board-only one for logging behind-the-scenes hours — see its own section below. It shows a "Board only" badge here.</li>
         <li><b>Edit</b> any event later. An edit never deletes existing signups — but read the flag below before <b>renaming</b> a role that already has people signed up.</li>
       </ul>
       <div class="help-note bad" style="margin-top:12px">
@@ -528,6 +529,25 @@ tr:last-child td{border-bottom:none}
     </div></div>
 
     <div class="card guide"><div style="padding:14px">
+      <h3>Behind-the-scenes hours (board only)</h3>
+      <p>A way for board members to record the invisible work — meetings, paperwork, grant and sanctioning forms, phone calls, coordinating awards — that never shows up as a normal shift. It's just an ordinary event with the <b>Board members only</b> box ticked, and it works a little differently from a regular one.</p>
+      <p>Because board families are already bond-exempt, this isn't about credits — it's recognition. The hours roll into the club's season total and the <b>Club standings</b> tab on the volunteer page, so everyone can finally see how much the board puts in.</p>
+      <h3 style="margin-top:14px">Setting one up</h3>
+      <ul>
+        <li>Add an event, give it a plain name (e.g. <b>Behind-the-Scenes Hours</b>), and <b>leave the date blank</b> — that keeps it open and visible all season instead of expiring.</li>
+        <li>Tick <b>Board members only</b>. It's now hidden from every non-board family, and the sign-up swaps the usual spot list for an hours-and-note entry.</li>
+        <li>Set the roles up as <b>task categories</b> rather than jobs — e.g. Meetings, Admin &amp; paperwork, Grants/Funding, Track &amp; equipment, Other. Give each <b>Needed = 0</b> (unlimited, so it never fills up). Credits don't matter here — the person types their own hours — so leave them blank.</li>
+        <li>Only families with the <b>Board</b> switch on (Families tab) can see or log against it.</li>
+      </ul>
+      <h3 style="margin-top:14px">How board members log it</h3>
+      <p>On the volunteer page they pick their family, then the event, then a <b>task category</b>, type how many <b>hours</b> they put in, and add a short <b>note</b> on what they did. They can log as they go — a couple of hours one night, more another — and rough estimates are fine. Each entry lands in <b>Approvals</b> as pending like any other shift, and the <b>note shows right on the approval row</b> so you can see what the time was for before you approve it.</p>
+      <div class="help-note warn" style="margin-top:12px">
+        <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+        <span><b>One entry is capped at 24 hours</b> to catch a mistyped number. For anything bigger — say 25 hours building something over many nights — just split it into two entries (e.g. 15 + 10). They both bank and total up the same.</span>
+      </div>
+    </div></div>
+
+    <div class="card guide"><div style="padding:14px">
       <h3>Full log &amp; releasing a spot</h3>
       <p>Every signup ever, filterable by family or status, exportable to CSV. This is also where you <b>free up a spot</b>: if someone signs up and can't make it, hit <b>Release spot</b> on their row. The spot reopens on the volunteer list, credits stop counting, and the entry stays marked <b>Released</b> for the record. Use <b>Restore</b> to undo.</p>
     </div></div>
@@ -540,6 +560,7 @@ tr:last-child td{border-bottom:none}
     <div class="card guide"><div style="padding:14px">
       <h3>What volunteers see</h3>
       <p>On the volunteer page a family picks their name, who's volunteering, the event, and then <b>checks off every spot</b> they'll cover (one person can grab several shifts at once). They get a confirmation, and it arrives in your Approvals as pending. If they need to cancel or change, there's a link to email the coordinator.</p>
+      <p>The page has <b>two tabs</b>. <b>Volunteer</b> (the default) is the sign-up flow above. <b>Club standings</b> is a recognition board: the club's total approved hours for the season, then contributing families sorted by hours with board members badged. It only lists families who've logged approved time — no zero rows — and it leaves out pending and "hours to go", so it reads as celebrating contribution rather than calling anyone out. Sign-up stays the focus; standings is the second tab on purpose.</p>
     </div></div>
 
     <div class="card guide"><div style="padding:14px">
@@ -559,6 +580,7 @@ tr:last-child td{border-bottom:none}
         <li><b>Thank the out-of-club helpers</b> → Full log, filter/scan for the Guest tag (or export CSV).</li>
         <li><b>Adjusting a role that has signups</b> → changing credits only affects new signups (everything already signed up, <b>including pending</b>, keeps its original credit); <b>approve pending signups before renaming</b> a role (see the 🚩 in Events &amp; roles).</li>
         <li><b>A family is exempt (board)</b> → Families → toggle Board.</li>
+        <li><b>Capture board / behind-the-scenes hours</b> → make a <b>Board members only</b> event (blank date, roles as categories); board members log their own hours + a note. Over 24h in one go? Split it into two entries.</li>
       </ul>
     </div></div>
   </div>
