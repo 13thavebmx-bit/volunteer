@@ -365,6 +365,10 @@ tr:last-child td{border-bottom:none}
           <input type="checkbox" id="evPlan" style="width:auto;margin:2px 0 0">
           <span>Needs event planning <span style="font-weight:400;color:var(--muted)">— flag this for the Events Coordinator (provincials, major track maintenance, etc.) so it shows up there for a task plan.</span></span>
         </label>
+        <label style="display:flex;align-items:flex-start;gap:9px;margin:2px 0 14px;font-size:13px;font-weight:600;color:var(--ink);text-transform:none;letter-spacing:0;cursor:pointer">
+          <input type="checkbox" id="evBoardOnly" style="width:auto;margin:2px 0 0">
+          <span>Board members only <span style="font-weight:400;color:var(--muted)">— a behind-the-scenes event only board families see. They log their own hours + a note (meetings, forms, admin) instead of picking a fixed-credit spot. Leave the date blank so it stays open all season, and set roles as task categories with unlimited spots.</span></span>
+        </label>
         <div class="field"><label>Roles &amp; credits</label>
           <div class="roles-edit" id="rolesEdit"></div>
           <button class="btn sm ghost" id="addRoleBtn">+ Add role</button>
@@ -569,7 +573,7 @@ tr:last-child td{border-bottom:none}
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
 const PW  = '13thAveVol';   // ← change this to your coordinator password
-const APP_VERSION = '2026.06.24-3';   // version of THIS admin page (GitHub)
+const APP_VERSION = '2026.07.06-1';   // version of THIS admin page (GitHub)
 let LIVE_VERSION = null;              // version reported by the deployed backend
 
 /* Roles a new BLANK event starts with — left empty (no pre-named roles) so you
@@ -742,7 +746,7 @@ function renderApprovals(){
     const evDate=ev&&ev.date?fmtDate_(ev.date):'';
     return `<tr class="row-pending" data-id="${l.logId}">
       <td><b>${esc(l.surname)}</b><div style="font-size:11.5px;color:var(--muted);margin-top:2px">${esc(l.eventName)}${evDate?' — <span style="color:var(--ink);font-weight:700">'+esc(evDate)+'</span>':''}${l.session?' · '+esc(l.session):''}</div></td>
-      <td>${esc(l.role)}${l.slot?' <span style="color:var(--muted)">· '+esc(l.slot)+'</span>':''}${l.volunteer?`<div style="font-size:11.5px;color:var(--muted)">${esc(l.volunteer)}</div>`:''}</td>
+      <td>${esc(l.role)}${l.slot?' <span style="color:var(--muted)">· '+esc(l.slot)+'</span>':''}${l.volunteer?`<div style="font-size:11.5px;color:var(--muted)">${esc(l.volunteer)}</div>`:''}${l.note?`<div style="font-size:11.5px;color:var(--muted);font-style:italic;margin-top:2px;white-space:normal;line-height:1.4;max-width:260px">“${esc(l.note)}”</div>`:''}</td>
       <td class="num">${l.credits}</td>
       <td style="white-space:nowrap">
         <button class="btn sm green" data-act="approved" data-id="${l.logId}"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 6"/></svg></button>
@@ -1031,6 +1035,7 @@ function startEdit(id){
   $('evNotes').value=e.notes||'';
   $('evFeatured').checked=!!e.featured;
   $('evPlan').checked=!!e.planNeeded;
+  $('evBoardOnly').checked=!!e.boardOnly;
   ROLES_DRAFT=(e.roles||[]).map(r=>({role:r.role,slot:r.slot||'',spots:r.spots||0,credits:r.credits||0}));
   renderRolesEdit();
   $('addEvBtn').textContent='Save changes';
@@ -1044,7 +1049,7 @@ function exitEdit(){
   $('weeklyWrap').style.display='none'; $('onceWrap').style.display='block';
   $('addEvBtn').textContent='Add event';
   $('cancelEdit').style.display='none';
-  $('evName').value=''; $('evNotes').value=''; $('evDate').value=''; $('evFeatured').checked=false; $('evPlan').checked=false;
+  $('evName').value=''; $('evNotes').value=''; $('evDate').value=''; $('evFeatured').checked=false; $('evPlan').checked=false; $('evBoardOnly').checked=false;
   resetTypeOther();
   loadTemplate();
 }
@@ -1123,7 +1128,7 @@ function renderEvents(){
     }).join('  ·  ');
     const cancelled=e.status==='cancelled';
     return `<tr class="${cancelled?'ev-cancelled':''}">
-      <td><b>${esc(e.name)}</b>${cancelled?' <span class="tag cancelled">Cancelled</span>':''}${e.featured?' <span class="tag" style="background:var(--teal-tint,#E8F6FA);color:var(--teal,#0098B8)">★ Early signup</span>':''}${e.planNeeded?' <span class="tag" style="background:#FBEEDF;color:#9A6700">Plan needed</span>':''}
+      <td><b>${esc(e.name)}</b>${cancelled?' <span class="tag cancelled">Cancelled</span>':''}${e.featured?' <span class="tag" style="background:var(--teal-tint,#E8F6FA);color:var(--teal,#0098B8)">★ Early signup</span>':''}${e.planNeeded?' <span class="tag" style="background:#FBEEDF;color:#9A6700">Plan needed</span>':''}${e.boardOnly?' <span class="tag" style="background:var(--teal-tint,#E8F6FA);color:var(--teal-dark,#007e99)">Board only</span>':''}
         <div style="font-size:11.5px;color:var(--muted)">${esc(e.type)}${e.date?' · '+fmtDate_(e.date):''}${e.notes?' · '+esc(e.notes):''}</div>
         <div style="font-size:11.5px;color:var(--muted-soft);margin-top:3px">${roleStr}</div></td>
       <td style="text-align:right;vertical-align:top;white-space:nowrap">
@@ -1155,10 +1160,11 @@ async function addEv(){
   const type=eventTypeValue();
   const featured=$('evFeatured').checked;
   const planNeeded=$('evPlan').checked;
+  const boardOnly=$('evBoardOnly').checked;
   $('addEvBtn').disabled=true;
   try{
     if(EDIT_ID){
-      EVENTS=await apiPost('updateEvent',{eventId:EDIT_ID,event:{name,type,date:$('evDate').value,notes:$('evNotes').value,roles:cleanRoles,featured,planNeeded}});
+      EVENTS=await apiPost('updateEvent',{eventId:EDIT_ID,event:{name,type,date:$('evDate').value,notes:$('evNotes').value,roles:cleanRoles,featured,planNeeded,boardOnly}});
       toast('Changes saved','ok');
       exitEdit();
       renderAll();
@@ -1169,13 +1175,13 @@ async function addEv(){
       EVENTS=res.events;
       toast(`Created ${res.created} events`,'ok');
       $('evStart').value=''; $('evEnd').value=''; document.querySelectorAll('#dowPick .dow').forEach(b=>b.classList.remove('on'));
-      $('evName').value=''; $('evNotes').value=''; $('evFeatured').checked=false; $('evPlan').checked=false; resetTypeOther(); loadTemplate();
+      $('evName').value=''; $('evNotes').value=''; $('evFeatured').checked=false; $('evPlan').checked=false; $('evBoardOnly').checked=false; resetTypeOther(); loadTemplate();
       renderAll();
     } else {
-      EVENTS=await apiPost('addEvent',{event:{name,type,date:$('evDate').value,notes:$('evNotes').value,roles:cleanRoles,featured,planNeeded}});
+      EVENTS=await apiPost('addEvent',{event:{name,type,date:$('evDate').value,notes:$('evNotes').value,roles:cleanRoles,featured,planNeeded,boardOnly}});
       toast('Event added','ok');
       $('evDate').value='';
-      $('evName').value=''; $('evNotes').value=''; $('evFeatured').checked=false; $('evPlan').checked=false; resetTypeOther(); loadTemplate();
+      $('evName').value=''; $('evNotes').value=''; $('evFeatured').checked=false; $('evPlan').checked=false; $('evBoardOnly').checked=false; resetTypeOther(); loadTemplate();
       renderAll();
     }
   }catch(err){ toast(err.message,'err'); }

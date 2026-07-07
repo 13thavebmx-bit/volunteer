@@ -185,6 +185,30 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
   box-shadow:0 8px 24px rgba(0,0,0,.25);z-index:100;transition:.25s;pointer-events:none;max-width:90%;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.ok{background:var(--ok)} .toast.err{background:var(--bad)}
+
+/* Tabs (Volunteer / Club standings) */
+.tabs{display:flex;gap:6px;margin-bottom:14px;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:5px;box-shadow:var(--shadow)}
+.tab{flex:1;padding:11px 8px;border:none;background:transparent;border-radius:var(--radius-sm);font-family:var(--font);font-size:14px;font-weight:700;color:var(--muted);cursor:pointer;transition:.12s}
+.tab.on{background:var(--teal);color:#fff}
+
+/* Board-only signup extras */
+#boardWrap textarea{width:100%;padding:12px 13px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:15px;font-family:var(--font);color:var(--ink);resize:vertical}
+#boardWrap textarea:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 3px rgba(0,152,184,.12)}
+
+/* Club standings (recognition board) */
+.s-hero{text-align:center;padding:6px 0 16px;border-bottom:1px solid var(--line-soft);margin-bottom:14px}
+.s-hero-lbl{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.s-hero-num{font-family:'Anton',var(--font);font-weight:400;font-size:40px;line-height:1.05;color:var(--teal-dark);margin:4px 0}
+.s-hero-sub{font-size:13px;color:var(--muted-soft)}
+.s-list-head{font-size:12px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.s-list{display:flex;flex-direction:column}
+.s-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line-soft)}
+.s-row:last-child{border-bottom:none}
+.s-rank{width:18px;font-size:13px;color:var(--muted-soft);text-align:center;flex-shrink:0}
+.s-name{flex:1;font-size:14px;font-weight:700}
+.s-badge{display:inline-block;margin-left:6px;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:20px;background:var(--teal-tint);color:var(--teal-dark);vertical-align:middle}
+.s-hrs{font-size:14px;font-weight:800;white-space:nowrap}
+.s-more{display:block;margin:14px auto 0;background:#fff;border:1px solid var(--line);border-radius:var(--radius-sm);padding:9px 16px;font-family:var(--font);font-size:13px;font-weight:700;color:var(--teal-dark);cursor:pointer}
 </style>
 </head>
 <body>
@@ -199,6 +223,13 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
   <div class="seasonbar" id="seasonbar">Loading season…</div>
 
   <div class="body">
+
+    <div class="tabs" id="tabs" style="display:none">
+      <button class="tab on" data-tab="signup">Volunteer</button>
+      <button class="tab" data-tab="standings">Club standings</button>
+    </div>
+
+    <div id="tab-signup">
 
     <div class="progress" id="progress">
       <div class="pname" id="pName">—</div>
@@ -250,8 +281,19 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
         </div>
       </div>
 
-      <label>Pick your spots</label>
-      <div id="roleList"><p class="lead" style="margin:0">Select an event first.</p></div>
+      <div id="spotWrap">
+        <label>Pick your spots</label>
+        <div id="roleList"><p class="lead" style="margin:0">Select an event first.</p></div>
+      </div>
+
+      <div id="boardWrap" style="display:none">
+        <label for="boardCat">What kind of task</label>
+        <select id="boardCat"><option value="">Select…</option></select>
+        <label for="boardHours">Hours <span class="req" title="Required">*</span></label>
+        <input type="text" id="boardHours" inputmode="decimal" placeholder="e.g. 2 or 1.5" autocomplete="off">
+        <label for="boardNote">What did you work on?</label>
+        <textarea id="boardNote" rows="3" placeholder="A short note so the club knows what this was — e.g. built the volunteer app, filed sanctioning forms"></textarea>
+      </div>
 
       <div class="notice">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
@@ -266,6 +308,12 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
         Signed up but can't make it, or need a change?<br>
         <a id="changeLink" href="#" style="color:var(--teal);font-weight:700;text-decoration:none">Email the volunteer coordinator</a>
       </p>
+    </div>
+
+    </div><!-- /tab-signup -->
+
+    <div id="tab-standings" style="display:none">
+      <div class="card" id="standingsCard"></div>
     </div>
 
     <div class="loading" id="loading">
@@ -298,7 +346,7 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
    This is the only line you ever change in this file.
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
-const APP_VERSION = '2026.06.24-3';
+const APP_VERSION = '2026.07.06-1';
 
 /* ---- State ---- */
 let SETTINGS = {bondCredits:10, seasonLabel:'', seasonWindow:'', bondNote:''};
@@ -365,6 +413,49 @@ function renderFamilies(){
     +FAMILIES.map(f=>`<option value="${f.familyId}">${esc(f.surname)}</option>`).join('')
     +'</optgroup>';
 }
+function selectedFamily(){ const fid=$('family').value; return FAMILIES.find(f=>String(f.familyId)===String(fid))||null; }
+
+/* ---- Tabs ---- */
+function showTab(name){
+  document.querySelectorAll('#tabs .tab').forEach(b=>b.classList.toggle('on', b.dataset.tab===name));
+  $('tab-signup').style.display    = name==='signup'    ? 'block' : 'none';
+  $('tab-standings').style.display = name==='standings' ? 'block' : 'none';
+}
+
+/* ---- Club standings (recognition board) ----
+   Credits are hours in this club, so we show them as hours. We only list families
+   who have logged approved time — no zero rows, so it reads as recognition, not a
+   ranking of who hasn't shown up. Board members are badged. */
+let STANDINGS_EXPANDED=false;
+const STANDINGS_TOP=8;
+function hrs_(n){ return Math.round((Number(n)||0)*10)/10; }
+function renderStandings(){
+  const card=$('standingsCard'); if(!card) return;
+  const all=(FAMILIES||[]);
+  const contributors=all.filter(f=>Number(f.approved)>0)
+    .sort((a,b)=>Number(b.approved)-Number(a.approved) || String(a.surname).localeCompare(String(b.surname)));
+  const totalHours=all.reduce((s,f)=>s+(Number(f.approved)||0),0);
+  const n=contributors.length;
+  const shown = STANDINGS_EXPANDED ? contributors : contributors.slice(0, STANDINGS_TOP);
+  const rows = shown.map((f,i)=>{
+    const badge=f.board?'<span class="s-badge">Board</span>':'';
+    return `<div class="s-row"><span class="s-rank">${i+1}</span>`
+      +`<span class="s-name">${esc(f.surname)}${badge}</span>`
+      +`<span class="s-hrs">${hrs_(f.approved)} h</span></div>`;
+  }).join('');
+  const more = contributors.length>STANDINGS_TOP
+    ? `<button class="s-more" id="stdMore">${STANDINGS_EXPANDED?'Show fewer':'Show all contributors'}</button>` : '';
+  card.innerHTML =
+    `<div class="s-hero">
+       <div class="s-hero-lbl">This season, together</div>
+       <div class="s-hero-num">${hrs_(totalHours)} hours</div>
+       <div class="s-hero-sub">across ${n} ${n===1?'family':'families'} pitching in</div>
+     </div>
+     <div class="s-list-head">Top contributors</div>
+     <div class="s-list">${rows||'<p class="lead" style="margin:0">No approved hours logged yet this season.</p>'}</div>
+     ${more}`;
+  const mb=$('stdMore'); if(mb) mb.addEventListener('click',()=>{ STANDINGS_EXPANDED=!STANDINGS_EXPANDED; renderStandings(); });
+}
 // Event list rules. Two knobs you can tweak:
 const UPCOMING_EVENTS_SHOWN = 5; // how many upcoming events to list (today onward)
 const GRACE_DAYS = 1;            // also keep this many past days, so someone who forgot
@@ -387,7 +478,9 @@ function renderEvents(){
   const today=new Date(); today.setHours(0,0,0,0);
   const graceStart=new Date(today); graceStart.setDate(today.getDate()-GRACE_DAYS);
 
-  const active=EVENTS.filter(e=>e.status!=='cancelled');
+  const fam=selectedFamily();
+  const showBoard=!!(fam && fam.board);
+  const active=EVENTS.filter(e=>e.status!=='cancelled' && (showBoard || !e.boardOnly));
   const undated=active.filter(e=>!evDate_(e.date));                 // standing events, always available
   const dated=active.filter(e=>evDate_(e.date))
                     .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
@@ -516,11 +609,25 @@ function onEventChange(){
   const id=$('event').value;
   CUR_EVENT = EVENTS.find(e=>String(e.eventId)===String(id)) || null;
   SEL.clear();
-  const isPractice = CUR_EVENT && /practice/i.test(CUR_EVENT.type||CUR_EVENT.name||'');
+  const board = !!(CUR_EVENT && CUR_EVENT.boardOnly);
+  const isPractice = !board && CUR_EVENT && /practice/i.test(CUR_EVENT.type||CUR_EVENT.name||'');
   $('sessionWrap').style.display = isPractice ? 'block' : 'none';
   if(!isPractice){ SESSION=''; [...document.querySelectorAll('#seg button')].forEach(b=>b.classList.remove('on')); }
-  renderRoleList();
+  $('spotWrap').style.display  = board ? 'none'  : 'block';
+  $('boardWrap').style.display = board ? 'block' : 'none';
+  if(board){ renderBoardCats(); $('boardHours').value=''; $('boardNote').value=''; }
+  else { renderRoleList(); }
   refreshSubmit();
+}
+
+// Board-only events: the role list becomes a task-category picker.
+function renderBoardCats(){
+  const sel=$('boardCat');
+  const roles=(CUR_EVENT&&CUR_EVENT.roles)||[];
+  if(!roles.length){ sel.innerHTML='<option value="">No task categories set up yet</option>'; sel.disabled=true; return; }
+  sel.disabled=false;
+  sel.innerHTML='<option value="">Select…</option>'
+    +roles.map((r,i)=>`<option value="${i}">${esc(r.role)}${r.slot?' · '+esc(r.slot):''}</option>`).join('');
 }
 
 function spotCredits(r){
@@ -562,6 +669,16 @@ function renderRoleList(){
 function clubValue(){ return $('club').value==='__other' ? $('clubOther').value.trim() : $('club').value; }
 function refreshSubmit(){
   const fid=$('family').value;
+  if(CUR_EVENT && CUR_EVENT.boardOnly){
+    const hasName=$('vol').value.trim().length>0;
+    const catOk=$('boardCat').value!=='';
+    const hrs=parseFloat($('boardHours').value);
+    const hoursOk=hrs>0 && hrs<=24;
+    const ok=fid && fid!=='GUEST' && catOk && hoursOk && hasName;
+    $('submit').disabled=!ok;
+    $('submitLabel').textContent = ok ? `Log ${hrs_(hrs)} ${hrs===1?'hour':'hours'} (pending)` : 'Log hours';
+    return;
+  }
   const isGuest = fid==='GUEST';
   const isPractice = CUR_EVENT && /practice/i.test(CUR_EVENT.type||'');
   const hasName = $('vol').value.trim().length>0;
@@ -584,6 +701,37 @@ async function submitShift(){
   const fid=$('family').value;
   const isGuest = fid==='GUEST';
   const vol=$('vol').value.trim();
+
+  // Board-only event: one task category + typed hours + a note, lands pending.
+  if(CUR_EVENT && CUR_EVENT.boardOnly){
+    if(!vol){ toast('Enter the volunteer’s name','err'); return; }
+    const idx=$('boardCat').value;
+    if(idx===''){ toast('Pick a task category','err'); return; }
+    const r=CUR_EVENT.roles[+idx];
+    const hours=parseFloat($('boardHours').value);
+    if(!(hours>0)){ toast('Enter how many hours','err'); return; }
+    if(hours>24){ toast('That’s more than 24 hours — please check','err'); return; }
+    $('submit').disabled=true;
+    try{
+      const res=await apiPost('logVolunteers',{entry:{
+        familyId:fid, guest:false, eventId:CUR_EVENT.eventId, eventName:CUR_EVENT.name,
+        volunteer:vol, note:$('boardNote').value.trim()
+      }, spots:[{role:r.role, slot:r.slot||'', credits:hours}]});
+      EVENTS   = res.events   || await apiGet('getEvents');
+      FAMILIES = res.families || await apiGet('getFamilies');
+      showProgress(fid); renderStandings();
+      if(res.logged>0){
+        toast(`${hrs_(hours)} ${hours===1?'hour':'hours'} logged — pending approval`,'ok');
+        $('boardHours').value=''; $('boardNote').value=''; $('boardCat').value='';
+        $('event').value=''; renderEvents(); onEventChange();
+      } else {
+        toast('Could not log that — please try again','err');
+      }
+    }catch(err){ toast(err.message,'err'); }
+    refreshSubmit();
+    return;
+  }
+
   if(!vol){ toast('Enter the volunteer’s name','err'); return; }
   const club=clubValue();
   if(isGuest && !club){ toast('Pick or enter your club','err'); return; }
@@ -624,7 +772,13 @@ async function submitShift(){
 
 /* ---- Wire up ---- */
 function bindEvents(){
-  $('family').addEventListener('change', e=>{ $('clubWrap').style.display = e.target.value==='GUEST'?'block':'none'; showProgress(e.target.value); refreshSubmit(); });
+  $('family').addEventListener('change', e=>{
+    $('clubWrap').style.display = e.target.value==='GUEST'?'block':'none';
+    renderEvents();   // board-only events depend on whether a board family is selected
+    onEventChange();  // re-sync the spot/board panel to the (reset) event choice
+    showProgress(e.target.value);
+    refreshSubmit();
+  });
   $('club').addEventListener('change', ()=>{ $('clubOther').style.display = $('club').value==='__other'?'block':'none'; refreshSubmit(); });
   $('clubOther').addEventListener('input', refreshSubmit);
   $('changeLink').addEventListener('click', e=>{
@@ -652,6 +806,9 @@ function bindEvents(){
   });
   $('vol').addEventListener('input', refreshSubmit);
   $('event').addEventListener('change', onEventChange);
+  $('boardCat').addEventListener('change', refreshSubmit);
+  $('boardHours').addEventListener('input', refreshSubmit);
+  document.querySelectorAll('#tabs .tab').forEach(b=>b.addEventListener('click',()=>showTab(b.dataset.tab)));
   $('submit').addEventListener('click', submitShift);
   $('thanksClose').addEventListener('click', hideThanks);
   $('thanksModal').addEventListener('click', e=>{ if(e.target.id==='thanksModal') hideThanks(); });
@@ -678,7 +835,8 @@ async function init(){
     setConn('live');
     const live=data.version||'?';
     $('verLine').textContent = `v${APP_VERSION}` + (live!==APP_VERSION?` · backend v${live}`:'');
-    renderSeasonBar(); renderFamilies(); renderEvents();
+    renderSeasonBar(); renderFamilies(); renderEvents(); renderStandings();
+    $('tabs').style.display='flex';
     $('loading').style.display='none';
     $('form').style.display='block';
   }catch(err){
