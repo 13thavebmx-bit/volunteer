@@ -881,20 +881,18 @@ function renderBoardBulk() {
     // it is not a roster, so a board member who has never personally logged a
     // shift before won't show up here yet. The "+ add a name" row below covers that.
     const names = (f.volunteers && f.volunteers.length) ? f.volunteers : [];
+    const famBg = fi % 2 === 0 ? '#F5F9FE' : '#fff'; // alternate per family, not per row
+    const header = `<div style="padding:8px 12px;background:${famBg};border-bottom:1px solid var(--line-soft);font-weight:700;font-size:12.5px;letter-spacing:.03em;text-transform:uppercase;color:var(--teal-dark)">${esc(f.surname)}</div>`;
     const knownRows = names.map((name, ni) => {
       const id = `bbm_${fi}_${ni}`;
-      const isFirst = ni === 0;
       // Default to UNCHECKED — the coordinator checks off who was actually
       // present rather than unchecking who wasn't. A re-render still restores
       // whatever the coordinator had already set.
       const key = f.familyId + '|' + name;
       const wasChecked = isFirstRender ? false : (key in prevChecks ? prevChecks[key] : false);
-      return `<label for="${id}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line-soft);cursor:pointer;background:${isFirst ? '#F5F9FE' : '#fff'}">
+      return `<label for="${id}" style="display:flex;align-items:center;gap:10px;padding:9px 12px 9px 24px;border-bottom:1px solid var(--line-soft);cursor:pointer;background:${famBg}">
         <input type="checkbox" id="${id}" class="bb-member" data-fid="${f.familyId}" data-name="${esc(name)}" ${wasChecked ? 'checked' : ''} style="width:18px;height:18px;flex-shrink:0;accent-color:var(--teal)">
-        <span style="flex:1;min-width:0">
-          <span style="font-weight:${isFirst ? '700' : '400'};color:var(--ink)">${esc(name)}</span>
-          <span style="color:var(--muted-soft);font-size:12px;margin-left:6px">${esc(f.surname)}</span>
-        </span>
+        <span style="color:var(--ink);font-weight:400">${esc(name)}</span>
       </label>`;
     }).join('');
     // Always-present extra row: lets the coordinator add someone from this family
@@ -902,11 +900,11 @@ function renderBoardBulk() {
     // default — typing a name and checking the box is what includes them.
     const otherId = `bbo_${fi}`;
     const restored = prevOther[f.familyId] || { text: '', checked: false };
-    const otherRow = `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line-soft);background:#fff">
+    const otherRow = `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px 9px 24px;border-bottom:1px solid var(--line-soft);background:${famBg}">
         <input type="checkbox" id="${otherId}" class="bb-member-other" data-fid="${f.familyId}" ${restored.checked ? 'checked' : ''} style="width:18px;height:18px;flex-shrink:0;accent-color:var(--teal)">
-        <input type="text" class="bb-other-input" data-fid="${f.familyId}" value="${esc(restored.text)}" placeholder="+ add a ${esc(f.surname)} name not listed above" style="flex:1;min-width:0;border:none;border-bottom:1px dashed var(--line);padding:4px 2px;font-size:14px;font-family:var(--font);background:transparent">
+        <input type="text" class="bb-other-input" data-fid="${f.familyId}" value="${esc(restored.text)}" placeholder="+ add a name not listed above" style="flex:1;min-width:0;border:none;border-bottom:1px dashed var(--line);padding:4px 2px;font-size:14px;font-family:var(--font);background:transparent">
       </div>`;
-    return knownRows + otherRow;
+    return header + knownRows + otherRow;
   }).join('');
 
   // Set date to today if blank
