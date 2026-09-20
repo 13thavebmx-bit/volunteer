@@ -283,6 +283,56 @@ tr:last-child td{border-bottom:none}
         <div id="impResult" style="margin-top:10px;font-size:12.5px;line-height:1.55"></div>
       </div>
     </div>
+    <!-- Board Bulk Entry -->
+    <div class="card" id="boardBulkCard">
+      <div class="card-head" id="boardBulkToggle" style="cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between">
+        <span>Board bulk hours entry <span style="font-weight:400;color:var(--muted);font-size:11.5px">— log behind-the-scenes hours for multiple board members at once</span></span>
+        <svg id="boardBulkChevron" viewBox="0 0 24 24" style="width:18px;height:18px;flex-shrink:0;transition:transform .2s;transform:rotate(0deg)"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div id="boardBulkBody" style="display:none;padding:14px">
+        <div class="inline" style="margin-bottom:10px">
+          <div class="field" style="flex:1;margin:0">
+            <label>Board-only event</label>
+            <select id="bbEvent" style="width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font);background:#fff">
+              <option value="">Select event…</option>
+            </select>
+          </div>
+          <div class="field" style="flex:1;margin:0">
+            <label>Task category</label>
+            <select id="bbRole" style="width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font);background:#fff" disabled>
+              <option value="">Pick an event first…</option>
+            </select>
+          </div>
+        </div>
+        <div class="inline" style="margin-bottom:10px">
+          <div class="field" style="flex:1;margin:0">
+            <label>Hours <span style="font-weight:400;color:var(--muted-soft)">(24h max — split into two entries if more)</span></label>
+            <input type="number" id="bbHours" min="0.25" max="24" step="0.25" placeholder="e.g. 2" style="width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font)">
+          </div>
+          <div class="field" style="flex:1;margin:0">
+            <label>Date work was done</label>
+            <input type="date" id="bbDate" style="width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font)">
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:12px">
+          <label>What was done <span style="font-weight:400;color:var(--muted)">(optional note)</span></label>
+          <input type="text" id="bbNote" placeholder="e.g. Monthly board meeting — AGM prep" style="width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font)">
+        </div>
+        <div class="field" style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <label style="margin:0">Board members present</label>
+            <button type="button" class="btn sm ghost" id="bbToggleAll" style="font-size:12px;padding:4px 10px">Uncheck all</button>
+          </div>
+          <div id="bbMemberList" style="border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden"></div>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:13px;font-weight:600;color:var(--ink);text-transform:none;letter-spacing:0">
+          <input type="checkbox" id="bbApproved" checked style="width:auto;margin:0"> Mark as approved (the work already happened)
+        </label>
+        <button class="btn primary" id="bbSubmit">Log hours for checked members</button>
+        <div id="bbResult" style="margin-top:10px;font-size:12.5px;line-height:1.6"></div>
+      </div>
+    </div>
+
     <div class="card">
       <div id="apvFilterRow" style="padding:12px 14px;border-bottom:1px solid var(--line-soft);display:none;align-items:center;gap:10px;flex-wrap:wrap">
         <select id="apvEvent" style="flex:1;min-width:200px;max-width:360px;padding:9px 11px;border:1px solid var(--line);border-radius:var(--radius-sm);font-size:14px;font-family:var(--font);background:#fff"><option value="">All events</option></select>
@@ -700,6 +750,7 @@ function renderDash(){
 /* ---- Approvals ---- */
 function renderApprovals(){
   renderManualAdd();
+  renderBoardBulk();
   const evById=EVENTS.reduce((m,e)=>{ m[String(e.eventId)]=e; return m; },{});
   const allPend=LOG.filter(l=>l.status==='pending' && !l.eventCancelled);
   $('apvPill').textContent=allPend.length;
@@ -741,7 +792,7 @@ function renderApprovals(){
     const evDate=ev&&ev.date?fmtDate_(ev.date):'';
     return `<tr class="row-pending" data-id="${l.logId}">
       <td><b>${esc(l.surname)}</b><div style="font-size:11.5px;color:var(--muted);margin-top:2px">${esc(l.eventName)}${evDate?' — <span style="color:var(--ink);font-weight:700">'+esc(evDate)+'</span>':''}${l.session?' · '+esc(l.session):''}</div></td>
-      <td>${esc(l.role)}${l.slot?' <span style="color:var(--muted)">· '+esc(l.slot)+'</span>':''}${l.volunteer?`<div style="font-size:11.5px;color:var(--muted)">${esc(l.volunteer)}</div>`:''}${l.note?`<div style="font-size:11.5px;color:var(--muted);font-style:italic;margin-top:2px;white-space:normal;line-height:1.4;max-width:260px">“${esc(l.note)}”</div>`:''}</td>
+      <td>${esc(l.role)}${l.slot?' <span style="color:var(--muted)">· '+esc(l.slot)+'</span>':''}${l.volunteer?`<div style="font-size:11.5px;color:var(--muted)">${esc(l.volunteer)}</div>`:''}${l.activityDate?`<div style="font-size:11px;color:var(--teal-dark);margin-top:2px">Work done: ${fmtDate_(l.activityDate)}</div>`:''}${l.note?`<div style="font-size:11.5px;color:var(--muted);font-style:italic;margin-top:2px;white-space:normal;line-height:1.4;max-width:260px">“${esc(l.note)}”</div>`:''}</td>
       <td class="num">${l.credits}</td>
       <td style="white-space:nowrap">
         <button class="btn sm green" data-act="approved" data-id="${l.logId}"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 6"/></svg></button>
@@ -787,6 +838,224 @@ async function manualAdd(){
   }catch(err){ toast(err.message,'err'); }
   finally{ BUSY=false; }
   $('mAddBtn').disabled=false;
+}
+
+/* ---- Board bulk hours entry ---- */
+let BB_ALL_CHECKED = true;
+
+function renderBoardBulk() {
+  // Snapshot whatever the coordinator has mid-entry so a re-render triggered by
+  // something else (the 30s background refresh, approving an unrelated shift,
+  // etc.) never silently reverts their checkbox choices or a half-typed name —
+  // same reasoning as the manual-add form's preservation in silentRefresh().
+  const prevChecks = {}; // "fid|name" -> checked
+  document.querySelectorAll('.bb-member').forEach(cb => { prevChecks[cb.dataset.fid + '|' + cb.dataset.name] = cb.checked; });
+  const prevOther = {}; // fid -> {text, checked}
+  document.querySelectorAll('.bb-other-input').forEach(inp => {
+    const cb = document.querySelector(`.bb-member-other[data-fid="${inp.dataset.fid}"]`);
+    prevOther[inp.dataset.fid] = { text: inp.value, checked: cb ? cb.checked : false };
+  });
+  const prevRole = ($('bbRole') || {}).value;
+  const isFirstRender = document.querySelectorAll('.bb-member, .bb-member-other').length === 0;
+
+  // Populate event dropdown — board-only events only, non-cancelled
+  const boardEvents = EVENTS.filter(e => e.boardOnly && e.status !== 'cancelled')
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  const bbEv = $('bbEvent');
+  const prevEv = bbEv.value;
+  bbEv.innerHTML = '<option value="">Select event…</option>'
+    + boardEvents.map(e => `<option value="${e.eventId}">${esc(e.name)}${e.date ? ' — ' + fmtDate_(e.date) : ''}</option>`).join('');
+  bbEv.value = prevEv;
+
+  // Populate member checklist — board families only, sorted by surname
+  const boardFams = FAMILIES.filter(f => f.board)
+    .sort((a, b) => String(a.surname).localeCompare(String(b.surname)));
+  const list = $('bbMemberList');
+  if (!boardFams.length) {
+    list.innerHTML = '<div style="padding:10px 12px;color:var(--muted);font-size:13px">No board families registered yet — toggle the Board switch on a family first.</div>';
+    return;
+  }
+  list.innerHTML = boardFams.map((f, fi) => {
+    // Each known volunteer name from this family gets its own checkbox row.
+    // NOTE: this list is built from names that have appeared in past log rows —
+    // it is not a roster, so a board member who has never personally logged a
+    // shift before won't show up here yet. The "+ add a name" row below covers that.
+    const names = (f.volunteers && f.volunteers.length) ? f.volunteers : [];
+    const knownRows = names.map((name, ni) => {
+      const id = `bbm_${fi}_${ni}`;
+      const isFirst = ni === 0;
+      // Default to checked on first render; on a re-render, restore whatever the
+      // coordinator had set (falls back to checked if this name is genuinely new).
+      const key = f.familyId + '|' + name;
+      const wasChecked = isFirstRender ? true : (key in prevChecks ? prevChecks[key] : true);
+      return `<label for="${id}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line-soft);cursor:pointer;background:${isFirst ? '#F5F9FE' : '#fff'}">
+        <input type="checkbox" id="${id}" class="bb-member" data-fid="${f.familyId}" data-name="${esc(name)}" ${wasChecked ? 'checked' : ''} style="width:18px;height:18px;flex-shrink:0;accent-color:var(--teal)">
+        <span style="flex:1;min-width:0">
+          <span style="font-weight:${isFirst ? '700' : '400'};color:var(--ink)">${esc(name)}</span>
+          <span style="color:var(--muted-soft);font-size:12px;margin-left:6px">${esc(f.surname)}</span>
+        </span>
+      </label>`;
+    }).join('');
+    // Always-present extra row: lets the coordinator add someone from this family
+    // who hasn't logged before (or a second/third person). Unchecked and blank by
+    // default — typing a name and checking the box is what includes them.
+    const otherId = `bbo_${fi}`;
+    const restored = prevOther[f.familyId] || { text: '', checked: false };
+    const otherRow = `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line-soft);background:#fff">
+        <input type="checkbox" id="${otherId}" class="bb-member-other" data-fid="${f.familyId}" ${restored.checked ? 'checked' : ''} style="width:18px;height:18px;flex-shrink:0;accent-color:var(--teal)">
+        <input type="text" class="bb-other-input" data-fid="${f.familyId}" value="${esc(restored.text)}" placeholder="+ add a ${esc(f.surname)} name not listed above" style="flex:1;min-width:0;border:none;border-bottom:1px dashed var(--line);padding:4px 2px;font-size:14px;font-family:var(--font);background:transparent">
+      </div>`;
+    return knownRows + otherRow;
+  }).join('');
+
+  // Set date to today if blank
+  if (!$('bbDate').value) {
+    $('bbDate').value = new Date().toISOString().slice(0, 10);
+  }
+  bbRoleOptions();
+  // Restore the task-category selection if the event (and therefore its role
+  // list) hasn't changed underneath the coordinator.
+  if (prevEv === $('bbEvent').value && prevRole) $('bbRole').value = prevRole;
+}
+
+function bbRoleOptions() {
+  const eid = $('bbEvent').value;
+  const ev = EVENTS.find(e => String(e.eventId) === String(eid));
+  const sel = $('bbRole');
+  if (!ev || !ev.roles.length) {
+    sel.disabled = true;
+    sel.innerHTML = '<option value="">Pick an event first…</option>';
+    return;
+  }
+  sel.disabled = false;
+  sel.innerHTML = '<option value="">Category…</option>'
+    + ev.roles.map((r, i) => `<option value="${i}">${esc(r.role)}</option>`).join('');
+}
+
+function bbToggleAll() {
+  BB_ALL_CHECKED = !BB_ALL_CHECKED;
+  document.querySelectorAll('.bb-member').forEach(cb => { cb.checked = BB_ALL_CHECKED; });
+  $('bbToggleAll').textContent = BB_ALL_CHECKED ? 'Uncheck all' : 'Check all';
+}
+// Delegated listener (survives renderBoardBulk re-rendering the list): typing into
+// an "add a name" field auto-checks its own checkbox so the coordinator doesn't
+// have to click two things to add one person.
+document.addEventListener('input', e => {
+  if (e.target && e.target.classList && e.target.classList.contains('bb-other-input')) {
+    const fid = e.target.dataset.fid;
+    const cb = document.querySelector(`.bb-member-other[data-fid="${fid}"]`);
+    if (cb) cb.checked = e.target.value.trim().length > 0;
+  }
+});
+
+async function bbSubmit() {
+  const eid = $('bbEvent').value;
+  const ri = $('bbRole').value;
+  const hours = parseFloat($('bbHours').value);
+  const note = $('bbNote').value.trim();
+  const actDate = $('bbDate').value;
+  const approved = $('bbApproved').checked;
+
+  if (!eid) { toast('Pick a board-only event', 'err'); return; }
+  if (ri === '') { toast('Pick a task category', 'err'); return; }
+  if (!(hours > 0)) { toast('Enter how many hours', 'err'); return; }
+
+  const ev = EVENTS.find(e => String(e.eventId) === String(eid));
+  const role = ev.roles[+ri];
+
+  // Collect checked known members, plus any "add a name" rows that have both
+  // a name typed in AND their checkbox checked.
+  const checked = [...document.querySelectorAll('.bb-member:checked')]
+    .map(cb => ({ fid: cb.dataset.fid, name: cb.dataset.name }));
+  const otherRows = [...document.querySelectorAll('.bb-member-other:checked')];
+  for (const cb of otherRows) {
+    const input = document.querySelector(`.bb-other-input[data-fid="${cb.dataset.fid}"]`);
+    const name = input ? input.value.trim() : '';
+    if (!name) { toast('Type a name for the checked "add a name" row, or uncheck it', 'err'); return; }
+    checked.push({ fid: cb.dataset.fid, name: name });
+  }
+  if (!checked.length) { toast('Check at least one board member', 'err'); return; }
+
+  $('bbSubmit').disabled = true;
+  BUSY = true;
+  $('bbResult').innerHTML = '';
+
+  const status = approved ? 'approved' : 'pending';
+  let logged = 0;
+  const errors = [];       // display strings
+  const succeededKeys = []; // "fid|name" — used to uncheck only what actually landed
+
+  for (const person of checked) {
+    const fid = person.fid;
+    const volName = person.name;
+    try {
+      const res = await apiPost('logVolunteer', {
+        entry: {
+          familyId: fid,
+          eventId: ev.eventId,
+          eventName: ev.name,
+          role: role.role,
+          slot: role.slot || '',
+          session: '',
+          credits: hours,
+          volunteer: volName,
+          note: note,
+          activityDate: actDate,
+          override: true,
+          status: status
+        }
+      });
+      // Keep local data fresh after each call
+      EVENTS   = res.events   || EVENTS;
+      FAMILIES = res.families || FAMILIES;
+      LOG      = res.log      || LOG;
+      logged++;
+      succeededKeys.push(fid + '|' + volName);
+    } catch (err) {
+      errors.push(`${volName}: ${err.message}`);
+    }
+  }
+
+  BUSY = false;
+  $('bbSubmit').disabled = false;
+
+  // Before re-rendering: uncheck ONLY the people who actually got logged. Anyone
+  // who failed stays checked (and an "other" row that failed keeps its typed name),
+  // so a retry after fixing the problem re-submits just the failures — not
+  // everyone again, which would otherwise double-log the ones that already worked.
+  document.querySelectorAll('.bb-member').forEach(cb => {
+    if (succeededKeys.includes(cb.dataset.fid + '|' + cb.dataset.name)) cb.checked = false;
+  });
+  document.querySelectorAll('.bb-member-other:checked').forEach(cb => {
+    const input = document.querySelector(`.bb-other-input[data-fid="${cb.dataset.fid}"]`);
+    const name = input ? input.value.trim() : '';
+    if (name && succeededKeys.includes(cb.dataset.fid + '|' + name)) {
+      cb.checked = false;
+      if (input) input.value = '';
+    }
+  });
+
+  renderAll();
+
+  if (logged) {
+    const dateLabel = actDate ? ` for ${fmtDate_(actDate)}` : '';
+    toast(`${logged} board member${logged === 1 ? '' : 's'} logged — ${hours}h ${role.role}${dateLabel}`, 'ok');
+  }
+  if (errors.length) {
+    $('bbResult').innerHTML = '<b style="color:var(--bad)">Could not log ' + errors.length + ' member' + (errors.length === 1 ? '' : 's') + ' — still checked below for retry:</b><br>'
+      + errors.map(e => `<span style="color:var(--bad)">• ${esc(e)}</span>`).join('<br>');
+  } else if (logged) {
+    $('bbResult').innerHTML = `<span style="color:var(--ok)">✓ ${logged} entr${logged === 1 ? 'y' : 'ies'} logged${approved ? ' and approved' : ' as pending'}.</span>`;
+    // Full success — reset the rest of the form for the next use. (Checkboxes are
+    // already unchecked above; re-check them here so the panel is ready to go
+    // again for a *different* meeting without the coordinator re-ticking everyone.)
+    $('bbHours').value = '';
+    $('bbNote').value = '';
+    $('bbDate').value = new Date().toISOString().slice(0, 10);
+    document.querySelectorAll('.bb-member').forEach(cb => { cb.checked = true; });
+    BB_ALL_CHECKED = true;
+    $('bbToggleAll').textContent = 'Uncheck all';
+  }
 }
 
 /* ---- Bulk import (past shifts) ---- */
@@ -1324,8 +1593,8 @@ function exportStandings(){
 }
 function exportLog(){
   const src=filteredLog();
-  const rows=[['When','Family','Event','Role','Slot','Volunteer','Session','Credits','Status','Note']];
-  src.forEach(l=>rows.push([fmtTs(l.timestamp),l.surname,l.eventName,l.role,l.slot||'',l.volunteer||'',l.session,l.credits,l.status,l.note||'']));
+  const rows=[['When','Activity Date','Family','Event','Role','Slot','Volunteer','Session','Credits','Status','Note']];
+  src.forEach(l=>rows.push([fmtTs(l.timestamp),l.activityDate||'',l.surname,l.eventName,l.role,l.slot||'',l.volunteer||'',l.session,l.credits,l.status,l.note||'']));
   downloadCsv('volunteer-log.csv',rows);
 }
 
@@ -1363,6 +1632,16 @@ $('fltEvent').addEventListener('change',renderLog);
 $('fltTime').addEventListener('change',renderLog);
 $('apvEvent').addEventListener('change',renderApprovals);
 $('apvApproveAll').addEventListener('click',approveAllShown);
+$('boardBulkToggle').addEventListener('click',()=>{
+  const body=$('boardBulkBody'), chev=$('boardBulkChevron');
+  const open=body.style.display==='none';
+  body.style.display=open?'block':'none';
+  chev.style.transform=open?'rotate(180deg)':'rotate(0deg)';
+  if(open) renderBoardBulk();
+});
+$('bbEvent').addEventListener('change',bbRoleOptions);
+$('bbToggleAll').addEventListener('click',bbToggleAll);
+$('bbSubmit').addEventListener('click',bbSubmit);
 $('reportExport').addEventListener('click',exportReport);
 $('saveSettings').addEventListener('click',saveSettings);
 $('rolloverBtn').addEventListener('click',rolloverSeason);
