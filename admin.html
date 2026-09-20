@@ -321,7 +321,7 @@ tr:last-child td{border-bottom:none}
         <div class="field" style="margin-bottom:12px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <label style="margin:0">Board members present</label>
-            <button type="button" class="btn sm ghost" id="bbToggleAll" style="font-size:12px;padding:4px 10px">Uncheck all</button>
+            <button type="button" class="btn sm ghost" id="bbToggleAll" style="font-size:12px;padding:4px 10px">Check all</button>
           </div>
           <div id="bbMemberList" style="border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden"></div>
         </div>
@@ -841,7 +841,7 @@ async function manualAdd(){
 }
 
 /* ---- Board bulk hours entry ---- */
-let BB_ALL_CHECKED = true;
+let BB_ALL_CHECKED = false;
 
 function renderBoardBulk() {
   // Snapshot whatever the coordinator has mid-entry so a re-render triggered by
@@ -884,10 +884,11 @@ function renderBoardBulk() {
     const knownRows = names.map((name, ni) => {
       const id = `bbm_${fi}_${ni}`;
       const isFirst = ni === 0;
-      // Default to checked on first render; on a re-render, restore whatever the
-      // coordinator had set (falls back to checked if this name is genuinely new).
+      // Default to UNCHECKED — the coordinator checks off who was actually
+      // present rather than unchecking who wasn't. A re-render still restores
+      // whatever the coordinator had already set.
       const key = f.familyId + '|' + name;
-      const wasChecked = isFirstRender ? true : (key in prevChecks ? prevChecks[key] : true);
+      const wasChecked = isFirstRender ? false : (key in prevChecks ? prevChecks[key] : false);
       return `<label for="${id}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line-soft);cursor:pointer;background:${isFirst ? '#F5F9FE' : '#fff'}">
         <input type="checkbox" id="${id}" class="bb-member" data-fid="${f.familyId}" data-name="${esc(name)}" ${wasChecked ? 'checked' : ''} style="width:18px;height:18px;flex-shrink:0;accent-color:var(--teal)">
         <span style="flex:1;min-width:0">
@@ -1046,15 +1047,15 @@ async function bbSubmit() {
       + errors.map(e => `<span style="color:var(--bad)">• ${esc(e)}</span>`).join('<br>');
   } else if (logged) {
     $('bbResult').innerHTML = `<span style="color:var(--ok)">✓ ${logged} entr${logged === 1 ? 'y' : 'ies'} logged${approved ? ' and approved' : ' as pending'}.</span>`;
-    // Full success — reset the rest of the form for the next use. (Checkboxes are
-    // already unchecked above; re-check them here so the panel is ready to go
-    // again for a *different* meeting without the coordinator re-ticking everyone.)
+    // Full success — reset the rest of the form for the next use. Checkboxes are
+    // already unchecked (from the step above) and stay that way, matching the
+    // panel's normal unchecked-by-default state — ready for the coordinator to
+    // pick who's present at the next meeting rather than starting fully ticked.
     $('bbHours').value = '';
     $('bbNote').value = '';
     $('bbDate').value = new Date().toISOString().slice(0, 10);
-    document.querySelectorAll('.bb-member').forEach(cb => { cb.checked = true; });
-    BB_ALL_CHECKED = true;
-    $('bbToggleAll').textContent = 'Uncheck all';
+    BB_ALL_CHECKED = false;
+    $('bbToggleAll').textContent = 'Check all';
   }
 }
 
