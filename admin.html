@@ -415,60 +415,28 @@ tr:last-child td{border-bottom:none}
       <div class="card-head">Seasons</div>
       <div id="seasonList" style="padding:4px 0"></div>
       <div style="padding:14px;border-top:1px solid var(--line-soft)">
-        <div class="field"><label>Add a new season</label>
-          <div class="inline" style="margin-bottom:8px"><input type="number" id="nsYear" placeholder="Year (2027)" style="flex:0 0 110px"><input type="text" id="nsName" placeholder="Season name"></div>
-          <input type="text" id="nsFile" placeholder="Google Sheet File ID for the new season">
-        </div>
-        <button class="btn primary" id="addSeasonBtn">Add season</button>
-        <p class="sub" style="margin-top:8px">Each season lives in its own Google Sheet. The easiest way is to <b>make a copy of last season's sheet</b> so returning families carry over, then clear out last year's activity. Full instructions below.</p>
-
-        <details class="help">
-          <summary><svg class="chev" viewBox="0 0 24 24" width="14" height="14"><path d="M9 6l6 6-6 6"/></svg>How to add a new season — step by step</summary>
-          <div class="help-body">
-
-            <p>Pick <b>one</b> of the two methods below. The copy method is recommended because your family roster carries forward.</p>
-
-            <h4>Method A — Copy last season's sheet (recommended)</h4>
-            <ol>
-              <li><b>Open last season's Google Sheet.</b> It's the file this tracker is currently using. If you're not sure which one, ask whoever set up the tracker, or find it in the Google Drive of the account that owns it. Open it in Google Sheets.</li>
-              <li><b>Make a copy.</b> In the menu bar choose <b>File → Make a copy</b>. (Or in Google Drive: right-click the file → <b>Make a copy</b>.) A new file called "Copy of …" is created.</li>
-              <li><b>Rename the copy.</b> Click the file name at the top-left and rename it clearly, e.g. <code>13th Ave BMX Volunteer Tracker — 2027</code>. This is just a label for humans; it doesn't affect anything.</li>
-              <li><b>Clear out last season's activity.</b> Along the bottom of the sheet are tabs (Families, Events, Log, Settings, Tasks). On each tab, keep <b>row 1</b> (the bold headers) and only change the rows below it, per this table:
-                <table class="help-tabs">
-                  <tr><th>Tab</th><th>Do this</th></tr>
-                  <tr><td>Families</td><td><span class="help-keep">KEEP</span> — this is the whole reason to copy. Returning families carry over.</td></tr>
-                  <tr><td>Log</td><td><span class="help-clear">CLEAR</span> — delete every row below the header. <b>This must be empty</b>, or last year's shifts would count toward this year's bonds.</td></tr>
-                  <tr><td>Events</td><td><span class="help-clear">CLEAR</span> — last season's races and dates don't apply to the new year.</td></tr>
-                  <tr><td>Tasks</td><td><span class="help-clear">CLEAR</span> — coordinator to-dos were tied to last season's events.</td></tr>
-                  <tr><td>Settings</td><td><span class="help-keep">KEEP</span> — you'll update the season name, dates, and bond note in step 7.</td></tr>
-                </table>
-                <span style="font-size:12.5px;color:var(--muted)">To clear a tab: click the <b>row 2</b> number on the left to select that whole row, scroll to the bottom, hold <b>Shift</b> and click the last row's number to select everything in between, then right-click the selection → <b>Delete rows</b>. Leave row 1 alone.</span>
-              </li>
-              <li><b>Copy the new sheet's File ID.</b> Look at the web address in your browser while the new sheet is open. It looks like this:<br>
-                <code>https://docs.google.com/spreadsheets/d/<b>1AbCd…XyZ</b>/edit</code><br>
-                The File ID is the long string <b>between <code>/d/</code> and <code>/edit</code></b>. Select just that part and copy it.</li>
-              <li><b>Fill in the form above and click Add season.</b> Enter the <b>Year</b> (e.g. 2027), a <b>Season name</b> (e.g. "2027 Season"), and paste the <b>File ID</b>. Then click <b>Add season</b>. The new season appears in the Seasons list.</li>
-              <li><b>Make it active.</b> In the Seasons list above, click <b>Make active</b> next to the new season. The whole app now reads and writes to the new sheet.</li>
-              <li><b>Set the season details.</b> Scroll up to <b>Season setup</b> at the top of this page and update the season name, the season window (dates), credits required for the bond, and the bond note. Click <b>Save settings</b>.</li>
-              <li><b>Review the families.</b> Open the <b>Families</b> tab in this app. Remove any families who didn't return, add new ones, and double-check the board-member flags — board membership can change from year to year.</li>
-            </ol>
-
-            <div class="help-note ok"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg><span><b>Good news:</b> your saved role presets and task templates are <b>not</b> stored in the sheet, so they're already available in every new season. You never have to rebuild those.</span></div>
-
-            <div class="help-note warn"><svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span><b>Permissions:</b> the new sheet must be owned by — or shared (Editor access) with — the <b>same Google account that owns this tracker's script</b>. If a different person makes the copy, share it back to that account first, or "Add season" will fail with a permission error.</span></div>
-
-            <div class="help-note bad"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg><span><b>Never</b> point a new season at the current season's File ID — they would share the same data. Each season always needs its own separate file.</span></div>
-
-            <h4>Method B — Start from a blank sheet (faster, but no families)</h4>
-            <ol>
-              <li>Create a brand-new blank Google Sheet (<b>sheet.new</b> in the browser, or Drive → <b>New → Google Sheets</b>).</li>
-              <li>Rename it and copy its <b>File ID</b> from the address bar (same as step 5 above).</li>
-              <li>Enter the Year, Season name, and File ID in the form above, then <b>Add season</b> → <b>Make active</b> → set the season details. The tabs are built automatically.</li>
-            </ol>
-            <p>With this method the family roster does <b>not</b> carry over, so you'll re-add every family in the Families tab.</p>
-
+        <div class="card-head" style="margin:-14px -14px 14px;padding:10px 14px;font-size:13px">Start new season</div>
+        <p class="sub" style="margin:0 0 12px">Copies the current season's Sheet (same Drive folder), clears activity data (Log, Events, Tasks), and carries the family roster + settings forward untouched. This does <b>not</b> switch the app over — do that with the dropdown above once you've reviewed the new roster.</p>
+        <div class="inline" style="margin-bottom:10px">
+          <div class="field" style="flex:0 0 110px;margin:0">
+            <label>New year</label>
+            <input type="number" id="nsYear" placeholder="e.g. 2027">
           </div>
-        </details>
+          <div class="field" style="flex:1;margin:0 0 0 10px">
+            <label>Name (optional)</label>
+            <input type="text" id="nsName" placeholder="e.g. 2027 Season">
+          </div>
+        </div>
+        <button class="btn primary" id="rolloverBtn" style="width:100%">Create new season copy</button>
+
+        <div class="help-note ok" style="margin-top:14px">
+          <svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+          <span><b>Safe to run any time.</b> Creating a new season copy cannot touch your current season's data — it's a completely separate file. Only switching the active season (above) changes what the volunteer page sees.</span>
+        </div>
+        <div class="help-note warn" style="margin-top:8px">
+          <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+          <span><b>After creating:</b> go to the Families tab, remove families who didn't return, add new ones, and re-check Board flags. Role presets and task templates carry over automatically — they're stored in the script, not the sheet.</span>
+        </div>
       </div>
     </div>
   </div>
@@ -569,7 +537,8 @@ tr:last-child td{border-bottom:none}
 
     <div class="card guide"><div style="padding:14px">
       <h3>Setup</h3>
-      <p>Season label and window, the <b>credits required for a bond refund</b>, and the bond note volunteers see. Also where you manage seasons — each season is its own data file, so rolling into next year starts fresh while presets and event types carry over.</p>
+      <p>Season label and window, the <b>credits required for a bond refund</b>, and the bond note volunteers see. Also where you manage seasons — each season is its own data file, so rolling into next year starts fresh while presets, event types, and task templates carry over automatically.</p>
+      <p><b>Starting a new season</b> is one click. Under <b>Seasons → Start new season</b>, enter the new year (and optionally a name), then hit <b>Create new season copy</b>. The backend copies the current season's Google Sheet into the same Drive folder, clears the Log, Events, and Tasks tabs, and keeps the Families and Settings tabs intact. It does <b>not</b> switch the app over — you stay on the current season until you're ready. Once you've reviewed the family roster (remove leavers, add newcomers, re-check Board flags), open the <b>Active Season</b> dropdown and switch. Role presets, event types, and task templates are stored in the script — not the sheet — so they're already there in every new season without you doing anything.</p>
       <p>The line at the top (<b>This admin page</b> vs. <b>Deployed backend</b>) confirms the front-end and back-end versions match. Green and "in sync" = good.</p>
     </div></div>
 
@@ -1325,13 +1294,20 @@ async function setActive(year,btn){
   try{ SEASONS=await apiPost('setActiveSeason',{year}); await reloadAll(); toast('Active season switched','ok'); }
   catch(err){ toast(err.message,'err'); btn.disabled=false; }
 }
-async function addSeason(){
-  const year=$('nsYear').value, name=$('nsName').value, fileId=$('nsFile').value.trim();
-  if(!year||!fileId){ toast('Year and File ID are required','err'); return; }
-  $('addSeasonBtn').disabled=true;
-  try{ SEASONS=await apiPost('addSeason',{year,name,fileId}); $('nsYear').value='';$('nsName').value='';$('nsFile').value=''; renderSeasons(); toast('Season added','ok'); }
-  catch(err){ toast(err.message,'err'); }
-  $('addSeasonBtn').disabled=false;
+async function rolloverSeason(){
+  const year=$('nsYear').value.trim(), name=$('nsName').value.trim();
+  if(!year){ toast('Enter the new season year','err'); return; }
+  if(!confirm('Create a new '+year+' season by copying the current sheet? Families and settings will carry over; Log, Events, and Tasks will be cleared. This does not switch the active season.')) return;
+  const btn=$('rolloverBtn');
+  btn.disabled=true; btn.textContent='Creating copy…';
+  try{
+    const res=await apiPost('rolloverSeason',{year,name});
+    SEASONS=res;
+    $('nsYear').value=''; $('nsName').value='';
+    renderSeasons();
+    toast('New '+year+' season created — review families, then make it active','ok');
+  } catch(err){ toast(err.message,'err'); }
+  btn.disabled=false; btn.textContent='Create new season copy';
 }
 
 /* ---- CSV export ---- */
@@ -1389,7 +1365,7 @@ $('apvEvent').addEventListener('change',renderApprovals);
 $('apvApproveAll').addEventListener('click',approveAllShown);
 $('reportExport').addEventListener('click',exportReport);
 $('saveSettings').addEventListener('click',saveSettings);
-$('addSeasonBtn').addEventListener('click',addSeason);
+$('rolloverBtn').addEventListener('click',rolloverSeason);
 $('expStandings').addEventListener('click',exportStandings);
 $('expLog').addEventListener('click',exportLog);
 loadTemplate();
