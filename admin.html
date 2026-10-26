@@ -522,7 +522,7 @@ tr:last-child td{border-bottom:none}
     <div class="card guide"><div style="padding:14px">
       <h3>Families</h3>
       <p>Your club families and their credit standing. Add a family with their surname. Each shows approved credits vs. what's needed, plus anything still pending.</p>
-      <p><b>Board members:</b> toggle the Board switch for a family and their bond is automatically considered met — no credits required. Use it for your board members only. This same switch is also what lets that family see and log <b>board-only events</b> on the volunteer page (see "Behind-the-scenes hours" below) — non-board families never see them.</p>
+      <p><b>Board members:</b> toggle the Board switch for a family to mark them as a board member (executive, regular or at-large — it's one switch). It does <b>not</b> change their bond: board families earn the 15 credits through approved hours like everyone else, and their real hours show next to a blue <b>Board</b> tag. The switch is what lets that family see and log <b>board-only events</b> on the volunteer page, and it's what puts them on the <b>Board bulk hours entry</b> list (see "Behind-the-scenes hours" below) — non-board families never see them. To cover a board member's bond manually, add a manual log entry for them on the Approvals tab.</p>
     </div></div>
 
     <div class="card guide"><div style="padding:14px">
@@ -553,7 +553,7 @@ tr:last-child td{border-bottom:none}
     <div class="card guide"><div style="padding:14px">
       <h3>Behind-the-scenes hours (board only)</h3>
       <p>A way for board members to record the invisible work — meetings, paperwork, grant and sanctioning forms, phone calls, coordinating awards — that never shows up as a normal shift. It's just an ordinary event with the <b>Board members only</b> box ticked, and it works a little differently from a regular one.</p>
-      <p>Because board families are already bond-exempt, this isn't about credits — it's recognition. The hours roll into the club's season total and the <b>Club standings</b> tab on the volunteer page, so everyone can finally see how much the board puts in.</p>
+      <p>These hours count toward the board family's bond just like any other approved credits, and they roll into the club's season total and the <b>Club standings</b> tab on the volunteer page, so everyone can see how much the board puts in.</p>
       <h3 style="margin-top:14px">Setting one up</h3>
       <ul>
         <li>Add an event, give it a plain name (e.g. <b>Behind-the-Scenes Hours</b>), and <b>leave the date blank</b> — that keeps it open and visible all season instead of expiring.</li>
@@ -602,7 +602,7 @@ tr:last-child td{border-bottom:none}
         <li><b>Get a provincial open for early signups</b> → edit the event, tick "Open signups early."</li>
         <li><b>Thank the out-of-club helpers</b> → Full log, filter/scan for the Guest tag (or export CSV).</li>
         <li><b>Adjusting a role that has signups</b> → changing credits only affects new signups (everything already signed up, <b>including pending</b>, keeps its original credit); <b>approve pending signups before renaming</b> a role (see the 🚩 in Events &amp; roles).</li>
-        <li><b>A family is exempt (board)</b> → Families → toggle Board.</li>
+        <li><b>Mark a family as board</b> → Families → toggle Board (bond is still earned through hours; add a manual log entry if you need to cover it).</li>
         <li><b>Capture board / behind-the-scenes hours</b> → make a <b>Board members only</b> event (blank date, roles as categories); board members log their own hours + a note. Over 24h in one go? Split it into two entries.</li>
       </ul>
     </div></div>
@@ -618,7 +618,7 @@ tr:last-child td{border-bottom:none}
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
 const PW  = '13thAveVol';   // ← change this to your coordinator password
-const APP_VERSION = '2026.07.06-1';   // version of THIS admin page (GitHub)
+const APP_VERSION = '2026.10.26-1';   // version of THIS admin page (GitHub)
 let LIVE_VERSION = null;              // version reported by the deployed backend
 
 /* Roles a new BLANK event starts with — left empty (no pre-named roles) so you
@@ -722,7 +722,7 @@ function renderAll(){
 /* ---- Dashboard ---- */
 function renderDash(){
   const need=SETTINGS.bondCredits;
-  const bondsMet=FAMILIES.filter(f=>f.board||f.approved>=need).length;
+  const bondsMet=FAMILIES.filter(f=>f.approved>=need).length;
   const pending=LOG.filter(l=>l.status==='pending' && !l.eventCancelled).length;
   const totalCred=FAMILIES.reduce((s,f)=>s+f.approved,0);
   $('stFam').textContent=FAMILIES.length;
@@ -731,11 +731,11 @@ function renderDash(){
   $('stCred').textContent=totalCred;
 
   if(!FAMILIES.length){ $('standings').innerHTML=emptyMsg('No families yet. Add them on the Families tab.'); return; }
-  const rows=[...FAMILIES].sort((a,b)=>(b.board-a.board)||(b.approved-a.approved)).map(f=>{
-    const pct=f.board?100:Math.min(100,Math.round((f.approved/need)*100));
-    const done=f.board||f.approved>=need;
-    const statusTag=f.board?'<span class="tag board">Met · Board</span>'
-      :(done?'<span class="tag met">Met</span>':'<span class="tag short">'+(need-f.approved)+' to go</span>');
+  const rows=[...FAMILIES].sort((a,b)=>(b.approved-a.approved)||String(a.surname).localeCompare(String(b.surname))).map(f=>{
+    const pct=Math.min(100,Math.round((f.approved/need)*100));
+    const done=f.approved>=need;
+    const statusTag=(done?'<span class="tag met">Met</span>':'<span class="tag short">'+(need-f.approved)+' to go</span>')
+      +(f.board?' <span class="tag board">Board</span>':'');
     return `<tr>
       <td>${esc(f.surname)}</td>
       <td class="num">${f.approved}<span style="color:var(--muted-soft);font-weight:400"> / ${need}</span></td>
@@ -1160,14 +1160,15 @@ function renderReport(){
   const el=$('reportSummary'); if(!el) return;
   const need=SETTINGS.bondCredits;
   if(!FAMILIES.length){ el.textContent='No families registered yet.'; return; }
-  let covered=0, board=0, short=0, shortCredits=0;
+  let covered=0, board=0, boardMet=0, short=0, shortCredits=0;
   FAMILIES.forEach(f=>{
-    if(f.board){ board++; covered++; }
-    else if(f.approved>=need){ covered++; }
+    const met=f.approved>=need;
+    if(f.board){ board++; if(met) boardMet++; }
+    if(met){ covered++; }
     else { short++; shortCredits+=Math.max(0,need-f.approved); }
   });
   el.innerHTML=`<b style="color:var(--ink);font-size:15px">${covered}</b> of <b style="color:var(--ink)">${FAMILIES.length}</b> families have met the bond`
-    +(board?` <span style="color:var(--muted-soft)">(incl. ${board} board)</span>`:'')
+    +(board?` <span style="color:var(--muted-soft)">(board: ${boardMet} of ${board})</span>`:'')
     +` · <b style="color:${short?'var(--warn)':'var(--ok)'}">${short}</b> still short`
     +(short?` <span style="color:var(--muted-soft)">— ${shortCredits} credit${shortCredits===1?'':'s'} to go in total</span>`:'');
 }
@@ -1175,7 +1176,7 @@ function exportReport(){
   const need=SETTINGS.bondCredits;
   const rows=[['Family','Board member','Approved credits','Required','Status','Credits short']];
   FAMILIES.slice().sort((a,b)=>String(a.surname).localeCompare(String(b.surname))).forEach(f=>{
-    const covered=f.board||f.approved>=need;
+    const covered=f.approved>=need;
     rows.push([f.surname, f.board?'Yes':'No', f.approved, need, covered?'Bond covered':'Short', covered?0:Math.max(0,need-f.approved)]);
   });
   downloadCsv('bond-refund-report.csv',rows);
@@ -1186,12 +1187,12 @@ function renderFamilies(){
   if(!FAMILIES.length){ $('famList').innerHTML=emptyMsg('No families registered yet.'); }
   else{
     const rows=FAMILIES.map(f=>{
-      const done=f.board||f.approved>=need;
-      const statusTag=f.board?'<span class="tag board">Bond met · Board</span>'
-        :(done?'<span class="tag met">Bond met</span>':'<span class="tag short">short</span>');
+      const done=f.approved>=need;
+      const statusTag=(done?'<span class="tag met">Bond met</span>':'<span class="tag short">short</span>')
+        +(f.board?' <span class="tag board">Board</span>':'');
       return `<tr ${f.board?'style="background:#F5F9FE"':''}>
         <td><b>${esc(f.surname)}</b></td>
-        <td class="num"${f.board?' style="color:var(--muted-soft)"':''}>${f.approved} / ${need}</td>
+        <td class="num">${f.approved} / ${need}</td>
         <td>${f.pending?`<span class="tag pending">+${f.pending} pending</span>`:'<span style="color:var(--muted-soft)">—</span>'}</td>
         <td>${statusTag}</td>
         <td style="text-align:center"><button class="bsw ${f.board?'on':''}" data-board="${f.familyId}" aria-label="Toggle board for ${esc(f.surname)}"><i></i></button></td>
@@ -1207,7 +1208,7 @@ async function toggleBoard(id,btn){
   const f=FAMILIES.find(x=>String(x.familyId)===String(id));
   const next=!(f&&f.board);
   btn.disabled=true;
-  try{ FAMILIES=await apiPost('setFamilyBoard',{familyId:id,board:next}); renderAll(); toast(next?'Marked as board — bond met':'Board flag removed','ok'); }
+  try{ FAMILIES=await apiPost('setFamilyBoard',{familyId:id,board:next}); renderAll(); toast(next?'Marked as board member':'Board flag removed','ok'); }
   catch(err){ toast(err.message,'err'); btn.disabled=false; }
 }
 async function addFam(){

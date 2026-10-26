@@ -350,7 +350,7 @@ select:focus,input:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 
    This is the only line you ever change in this file.
    ============================================================ */
 const API = 'https://script.google.com/macros/s/AKfycbyzeI4_bL9gPOkbPctUiTu8ZDrlKOf1wfPmmKv0Y-cS_5qaldE4z9ceGh0lLqRAEzXx/exec';
-const APP_VERSION = '2026.07.06-1';
+const APP_VERSION = '2026.10.26-1';
 
 /* ---- State ---- */
 let SETTINGS = {bondCredits:10, seasonLabel:'', seasonWindow:'', bondNote:''};
@@ -518,15 +518,13 @@ function showProgress(fid){
   box.classList.add('show');
   $('pName').textContent = f.surname;
   $('pApproved').textContent = f.approved;
-  const pct = f.board ? 100 : Math.min(100, Math.round((f.approved/need)*100));
+  const pct = Math.min(100, Math.round((f.approved/need)*100));
   $('pBar').style.width = pct+'%';
-  const done = f.board || f.approved >= need;
+  const done = f.approved >= need;
   $('pBarWrap').classList.toggle('done', done);
   $('pBond').style.display = done ? 'inline-flex' : 'none';
-  $('pBond').innerHTML = f.board
-    ? '<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg> Bond covered — board member'
-    : '<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg> Bond requirement met';
-  $('pRemain').textContent = f.board ? 'Board member — bond covered' : (done ? 'Bond requirement met' : (Math.max(0,need-f.approved)+' to go'));
+  $('pBond').innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg> Bond requirement met';
+  $('pRemain').textContent = done ? 'Bond requirement met' : (Math.max(0,need-f.approved)+' to go');
   // Spell out BOTH the shift count and the credit count so "pending 4" can't be
   // misread as 4 shifts. Shift count comes from the same data as the list below,
   // so it always matches the Pending rows shown there.
